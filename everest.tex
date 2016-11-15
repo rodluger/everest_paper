@@ -1,0 +1,243 @@
+\documentclass[]{emulateapj}
+\PassOptionsToPackage{hyphens}{url}\usepackage{hyperref}
+\usepackage{natbib}
+\usepackage{amssymb}
+\usepackage{color}
+\usepackage{amsmath,mathtools}
+\usepackage{epsfig}
+\usepackage[FIGTOPCAP]{subfigure}
+\usepackage{afterpage}
+\usepackage{enumerate}
+\usepackage{multirow}
+\usepackage{verbatim}
+\usepackage{relsize}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows}
+\usepackage{morefloats}
+\usepackage{wasysym}
+
+\newcommand{\noop}[1]{}
+\newcommand{\note}[1]{{\color{red} #1}}
+\newcommand{\cn}{\note{(citation needed)\ }}
+\newcommand{\unit}[1]{\ensuremath{\, \mathrm{#1}}}
+\newcommand{\mearth}{\unit{M_\oplus}}
+\newcommand{\rearth}{\unit{R_\oplus}}
+\newcommand{\msun}{\unit{M_\odot}}
+\newcommand{\lsun}{\unit{L_\odot}}
+\newcommand{\mstar}{\unit{M_\star}}
+\newcommand{\rj}{\ensuremath{R_\mathrm{J}}}
+\newcommand{\avg}[1]{\langle #1 \rangle}
+\newcommand{\bavg}[1]{\bigg\langle #1 \bigg\rangle}
+\newcommand{\tab}[1]{\hspace{.2\textwidth}\rlap{#1}}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+\shorttitle{EVEREST2.0}
+\shortauthors{Luger et al. 2016}
+
+\begin{document}
+
+\title{EVEREST 2.0}
+\author{Rodrigo Luger\altaffilmark{1,2}, Eric Agol\altaffilmark{1,2}, Ethan Kruse\altaffilmark{1}, \\
+Daniel Foreman-Mackey\altaffilmark{1,3}, Rory Barnes\altaffilmark{1,2}}
+\altaffiltext{1}{Astronomy Department, University of Washington, Box 351580, Seattle, WA 98195, USA; \href{mailto:rodluger@uw.edu}{rodluger@uw.edu}}
+\altaffiltext{2}{Virtual Planetary Laboratory, Seattle, WA 98195, USA}
+\altaffiltext{3}{Sagan Fellow}
+
+\begin{abstract}
+We present an update to the \texttt{EVEREST} pipeline.
+\end{abstract}
+
+\section{Ridge Regression}
+\label{sec:l2}
+% TODO: Explain ridge regression
+The likelihood of the data $\mathbf{y}$ under a given model with weights $\mathbf{w}$ is given by
+\begin{align}
+\label{eq:like}
+\log\mathcal{L} =  &-\frac{1}{2} \left(\mathbf{y} - \mathbf{X} \cdot \mathbf{w}\right)^\top
+                   \cdot
+                   \mathbf{K^{-1}}
+                   \cdot
+                   \left(\mathbf{y} - \mathbf{X} \cdot \mathbf{w}\right) \nonumber\\  
+                   %
+                   &-\frac{1}{2} \log\left|\mathbf{K}\right| 
+                   -\frac{n}{2}\log 2\pi \nonumber\\
+                   %
+                   &-\frac{1}{2}
+                   \mathbf{w}^\top \cdot \mathbf{\Lambda}^{-1} \cdot \mathbf{w}
+                   -\frac{1}{2} \log\left|\mathbf{\Lambda}\right|,
+\end{align}
+%
+where $\mathbf{X}$ is the ($M \times N$) design matrix, $\mathbf{K}$ is the ($M \times M$) covariance matrix of the data, 
+$\mathbf{y}$ is the ($M \times 1$) SAP flux, and $\mathbf{\Lambda}$ is the ($M \times M$) diagonal regularization matrix,
+%
+\begin{align}
+\label{eq:Lambda}
+\Lambda_{m,n} = \lambda_{n}^2\delta_{mn}.
+\end{align}
+%
+Each element $\lambda_n^2$ in $\mathbf{\Lambda}$ is the variance of the 
+Gaussian prior on the weight of the corresponding column of the design matrix, 
+$\mathbf{X}_{*,n}$.
+
+The ridge regression estimator for Equation~(\ref{eq:like}) is
+%
+\begin{align}
+\label{eq:estimator}
+\mathbf{\hat{w}} = \mathbf{\Lambda} \cdot \mathbf{X}^\top
+                   \cdot
+                   \left(
+                   \mathbf{X} \cdot \mathbf{\Lambda} \cdot \mathbf{X}^\top + \mathbf{K}
+                   \right)^{-1} 
+                   \cdot
+                   \mathbf{y}
+\end{align}
+%
+with corresponding model
+%
+\begin{align}
+\label{eq:model}
+\mathbf{m} = \mathbf{X} \cdot \mathbf{\hat{w}}.
+\end{align}
+%
+In practice, we do not wish outliers to inform the model computation, so it is
+desirable to mask the corresponding rows in $\mathbf{X}$. If we denote the masked
+design matrix as $\mathbf{\bar{X}}$, the model may be written as
+%
+\begin{align}
+\label{eq:model_masked}
+\mathbf{\bar{m}} = \mathbf{X} \cdot \mathbf{\Lambda} \cdot \mathbf{\bar{X}}^\top
+                   \cdot
+                   \left(
+                   \mathbf{\bar{X}} \cdot \mathbf{\Lambda} \cdot \mathbf{\bar{X}}^\top + \mathbf{K}
+                   \right)^{-1} 
+                   \cdot
+                   \mathbf{y}.
+\end{align}
+%
+If the regularization matrix $\mathbf{\Lambda}$ is known, the de-trended light curve
+is simply
+\begin{align}
+\label{eq:detrended}
+\mathbf{y}' = \mathbf{y} - \mathbf{\bar{m}}.
+\end{align}
+
+\section{Cross-validation}
+Similarly to Paper I, we solve for $\mathbf{\Lambda}$ by cross-validation. 
+% TODO: Details here.
+In principle, each of the $\lambda_n$ in $\mathbf{\Lambda}$ could take on a different value, but solving for each one
+requires minimizing an $N$-dimensional function and is not computationally tractable.
+Instead, we simplify the problem by requiring that all regressors of the same order have the
+same regularization parameter $\lambda$. For third order PLD, the regularization matrix is thus
+%
+\begin{align}
+\label{eq:Lambda}
+\mathbf{\Lambda} = 
+\left(
+\begin{array}{ccc}
+  \mathbf{\Lambda_1}      &                       & \\
+  &                       \mathbf{\Lambda_2}      & \\
+  &                       &                       \mathbf{\Lambda_3} \\
+\end{array}
+\right)
+\end{align}
+%
+where $\mathbf{\Lambda_n} = \lambda_{n}^2\mathbf{I}$ is the 
+$n^\mathrm{th}$ order regularization matrix and $\lambda_{n}^2$ is the variance
+of the prior on the $n^\mathrm{th}$ order regressors. 
+
+For a typical \emph{K2} star with on the order of 30 aperture pixels, $M \sim\ $4,000 and
+$N \sim\ $5,000. Computing the products $\mathbf{X} \cdot \mathbf{\Lambda} \cdot \mathbf{\bar{X}}^\top$
+and $\mathbf{\bar{X}} \cdot \mathbf{\Lambda} \cdot \mathbf{\bar{X}}^\top$ in Equation~(\ref{eq:model_masked})
+is thus computationally expensive, and becomes prohibitive when performing cross-validation,
+since it must be evaluated for every set of $\lambda_{n}$'s. Fortunately, we can greatly reduce 
+the number of calculations by expressing the third order PLD design matrix as
+%
+\begin{align}
+\label{eq:design_simple}
+\mathbf{X} = 
+\left(
+\begin{array}{ccc}
+  \mathbf{X_1} & \mathbf{X_2} & \mathbf{X_3}
+\end{array}
+\right),
+\end{align}
+%
+so that we may then write
+%
+\begin{align}
+\label{eq:separable1}
+\mathbf{X} \cdot \mathbf{\Lambda} \cdot \mathbf{X}^\top &= 
+%
+\left(
+\begin{array}{ccc}
+  \mathbf{X_1} & \mathbf{X_2} & \mathbf{X_3}
+\end{array}
+\right)
+%
+\left(
+\begin{array}{ccc}
+  \mathbf{\Lambda_1}\hspace*{-8pt}      &                                     & \\[2pt]
+  &                                     \mathbf{\Lambda_2}\hspace*{-8pt}      & \\[2pt]
+  &                                     &                                     \mathbf{\Lambda_3} \\
+\end{array}
+\right)
+%
+\left(
+\begin{array}{c}
+  \mathbf{X_1^\top} \\[2pt]
+  \mathbf{X_2^\top} \\[2pt]
+  \mathbf{X_3^\top} \\
+\end{array}
+\right).\nonumber
+\end{align}
+%
+This evaluates to the sum of $\mathbf{X} \cdot \mathbf{\Lambda} \cdot \mathbf{X}^\top$
+for each of the individual PLD orders:
+%
+\begin{align}
+\lambda_1^2 \mathbf{X_1} \cdot \mathbf{X_1}^\top +
+\lambda_2^2 \mathbf{X_2} \cdot \mathbf{X_2}^\top +
+\lambda_3^2 \mathbf{X_3} \cdot \mathbf{X_3}^\top.
+\end{align}
+%
+Since we factored out the scalar regularization parameters $\lambda_n$, we need only evaluate each 
+of the three $\mathbf{X_n} \cdot \mathbf{X_n}^\top$ \emph{once} during cross-validation.
+
+Despite the simplifications outlined above,
+solving for the optimal set of regularization parameters $\{ \lambda_1, \lambda_2, \lambda_3 \}$
+still requires a costly minimization of the three-dimensional function 
+$\sigma_\mathrm{V}(\lambda_1, \lambda_2, \lambda_3)$, where
+$\sigma_\mathrm{V}$ is the scatter in the validation set. Our grid along each $\lambda_n$ axis
+spans 36 logarithmically-spaced values between $10^{0}$ and $10^{18}$ plus $\lambda_n = 0$, so a full grid search over 
+$\sigma_\mathrm{V}$ would require $37^3 =$ 50,653 computations of the inverse of
+$\left(\mathbf{\bar{X}} \cdot \mathbf{\Lambda} \cdot \mathbf{\bar{X}}^\top + \mathbf{K}\right)$
+in Equation~(\ref{eq:model_masked}). 
+
+In the interest of computational speed, we perform one final simplification. Since we
+expect the first order PLD regressors to contain most of the de-trending information,
+with each successive PLD order providing a small correction term to the fit, we break
+down the minimization problem into three separate one-dimensional problems.
+First, we perform cross-validation on the first order PLD model by setting $\lambda_2 = \lambda_3 = 0$
+to obtain $\hat{\lambda}_1$. We then perform cross-validation on the second order model
+by fixing $\lambda_1$ at this estimate and keeping $\lambda_3 = 0$. Finally, we solve
+for $\hat{\lambda}_3$ by fixing the first and second order parameters at their optimum
+values:
+%
+\begin{align}
+\hat{\lambda}_1 &= \argmin \sigma_\mathrm{V}(\lambda_1, \lambda_2 = 0,               \lambda_3 = 0) \nonumber\\
+\hat{\lambda}_2 &= \argmin \sigma_\mathrm{V}(\lambda_2, \lambda_1 = \hat{\lambda}_1, \lambda_3 = 0) \nonumber\\
+\hat{\lambda}_3 &= \argmin \sigma_\mathrm{V}(\lambda_3, \lambda_1 = \hat{\lambda}_1, \lambda_2 = \hat{\lambda}_2).
+\end{align}
+%
+This reduces the number of steps in the grid search to $37\times 3 = 111$, which is much
+more computationally tractable. It is important to note that there is no $a priori$ reason
+that this method should yield the global minimum of $\sigma_\mathrm{V}$; in fact, it very
+likely does not. However, since we allow for $\lambda_n = 0$ in our grid search, this approximation
+cannot lead to overfitting, as it will always prefer a lower-order PLD model to one
+with higher scatter in the validation set. While it may lead to \emph{under}fitting,
+in practice we find that it works surprisingly well,
+surpassing the de-trending power of the \texttt{EVEREST} model in Paper I (see \S\ref{?}).
+\pagebreak
+\bibliographystyle{apj}
+\bibliography{everest}
+\end{document}
