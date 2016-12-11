@@ -48,7 +48,7 @@ We present an update to the \texttt{EVEREST} pipeline.
 \end{abstract}
 
 \section{Ridge Regression}
-\label{sec:l2}
+\label{sec:ridge}
 Given a timeseries $\mathbf{y}$ with $N_{dat}$ data points, we wish to find the linear
 combination of $N_{reg}$ regressors that best fits the instrumental component of $\mathbf{y}$.
 Our linear model is thus
@@ -59,27 +59,59 @@ Our linear model is thus
 \end{align}
 %
 where $\mathbf{X}$ is the ($N_{dat} \times N_{reg}$) design matrix constructed from the set
-of regressors and $\mathbf{w}$ is the ($N_{reg} \times 1$) vector of weights.
-% TODO: Explain ridge regression
-The likelihood function for this model is
+of regressors and $\mathbf{w}$ is the ($N_{reg} \times 1$) vector of weights. If 
+$\mathbf{w}$ is known, the de-trended light curve is simply
+%
+\begin{align}
+\label{eq:detrended}
+\mathbf{y}' = \mathbf{y} - \mathbf{m}.
+\end{align}
+%
+In Paper I, we obtained $\mathbf{w}$ by maximizing the likelihood function
+%
 \begin{align}
 \label{eq:like}
-\log\mathcal{L} =  &-\frac{1}{2} \left(\mathbf{y} - \mathbf{X} \cdot \mathbf{w}\right)^\top
-                   \cdot
-                   \mathbf{K^{-1}}
-                   \cdot
-                   \left(\mathbf{y} - \mathbf{X} \cdot \mathbf{w}\right) \nonumber\\  
-                   %
-                   &-\frac{1}{2} \log\left|\mathbf{K}\right| 
-                   -\frac{n}{2}\log 2\pi \nonumber\\
-                   %
-                   &-\frac{1}{2}
+\log\mathcal{L}_0 =  &-\frac{1}{2} \left(\mathbf{y} - \mathbf{X} \cdot \mathbf{w}\right)^\top
+                     \cdot
+                     \mathbf{K^{-1}}
+                     \cdot
+                     \left(\mathbf{y} - \mathbf{X} \cdot \mathbf{w}\right) \nonumber\\  
+                     %
+                     &-\frac{1}{2} \log\left|\mathbf{K}\right| 
+                     -\frac{N_{dat}}{2}\log 2\pi,
+\end{align}
+%
+where $\mathbf{K}$ is the ($N_{dat} \times N_{dat}$) covariance matrix of the data and
+$\mathbf{y}$ is the ($N_{dat} \times 1$) SAP flux. Since the number of third order PLD regressors can
+be quite large (on the order of several thousand for a typical star, which is larger than the number
+of data points), the problem is ill-posed, meaning that a unique solution does not exist and 
+maximizing $\log\mathcal{L}_0$ is likely to lead to overfitting. We thus constructed $\mathbf{X}$
+from the (smaller) set of $N_{pca}$ principal components of the PLD regressors. We chose $N_{pca}$
+by performing cross-validation, which aims to maximize the predictive power of the model while
+minimizing overfitting.
+
+However, while principal component analysis (PCA) yields a set of components that captures 
+the most variance among the PLD vectors, there is no guarantee that the principal components
+are the ideal regressors in the PLD problem. Dimensionality reduction techniques such as PCA
+inevitably lead to information loss, and so it is worthwhile to consider alternative
+regression methods to fully exploit the potential of PLD.
+
+A common regression method for ill-posed problems is regularization, in which a prior is imposed
+on the values of the weights $\mathbf{w}$. Since overfitting occurs when $\mathbf{w}$ becomes very
+large, regularization recasts the problem by adding a penalty term to the likelihood that 
+increases with increasing $|\mathbf{w}|$. While many forms of regularization exist, we focus on
+ridge (L2) regression, since it has an analytic solution. Ridge regression involves placing a
+Gaussian prior on each of the weights $\mathbf{w}$, so that the posterior likelihood function becomes
+%
+\begin{align}
+\label{eq:like}
+\log\mathcal{L} =  \log\mathcal{L}_0
+                   -\frac{1}{2}
                    \mathbf{w}^\top \cdot \mathbf{\Lambda}^{-1} \cdot \mathbf{w}
                    -\frac{1}{2} \log\left|\mathbf{\Lambda}\right|,
 \end{align}
 %
-where $\mathbf{K}$ is the ($N_{dat} \times N_{dat}$) covariance matrix of the data, 
-$\mathbf{y}$ is the ($N_{dat} \times 1$) SAP flux, and $\mathbf{\Lambda}$ is the 
+where $\mathbf{\Lambda}$ is the 
 ($N_{reg} \times N_{reg}$) diagonal regularization matrix,
 %
 \begin{align}
@@ -89,9 +121,11 @@ $\mathbf{y}$ is the ($N_{dat} \times 1$) SAP flux, and $\mathbf{\Lambda}$ is the
 %
 Each element $\lambda_n^2$ in $\mathbf{\Lambda}$ is the variance of the 
 zero-mean Gaussian prior on the weight of the corresponding column of the design matrix, 
-$\mathbf{X}_{*,n}$.
+$\mathbf{X}_{*,n}$. Provided we choose the $\lambda_{n}$ correctly, this model should 
+have a higher predictive power than the PCA model adopted in Paper I.
 
-We wish to find the weights $\mathbf{\hat{w}}$ that maximize the posterior probability 
+Given this formulation, our task is to find the weights $\mathbf{\hat{w}}$ that maximize 
+the posterior probability 
 $\mathcal{L}$. Differentiating 
 Equation~(\ref{eq:like}) with respect to $\mathbf{w}$, we get
 %
@@ -126,13 +160,6 @@ with corresponding model
 \left( \mathbf{X}^\top \cdot \mathbf{K}^{-1} \cdot \mathbf{X} + \mathbf{\Lambda}^{-1} \right)^{-1}
 %
 \cdot \mathbf{X}^\top \cdot \mathbf{K}^{-1} \cdot \mathbf{y}.
-\end{align}
-%
-If the regularization matrix $\mathbf{\Lambda}$ is known, the de-trended light curve
-is simply
-\begin{align}
-\label{eq:detrended}
-\mathbf{y}' = \mathbf{y} - \mathbf{m}.
 \end{align}
 
 \section{Cross-validation}
@@ -172,10 +199,10 @@ where $\mathbf{\Lambda_n} = \lambda_{n}^2\mathbf{I}$ is the
 $n^\mathrm{th}$ order regularization matrix and $\lambda_{n}^2$ is the variance
 of the prior on the $n^\mathrm{th}$ order regressors. 
 
-For a typical \emph{K2} star with 30 aperture pixels, $N_{dat} \sim\ $2,000 and
+For a typical light curve segment of a \emph{K2} star with 30 aperture pixels, $N_{dat} \sim\ $2,000 and
 $N_{reg} \sim\ $5,000. Evaluating the matrix inverse in Equation~(\ref{eq:model_slow})
 is thus computationally expensive, and becomes prohibitive when performing cross-validation,
-since this must be done for every set of $\lambda_{n}$'s. Fortunately, we can greatly reduce 
+since this must be done for every set of $\lambda_{n}$'s. Fortunately, we can reduce 
 the number of calculations with some linear algebra. First, we apply the Woodbury matrix 
 identity to Equation~(\ref{eq:model_slow}), obtaining
 %
@@ -247,21 +274,22 @@ We may thus re-write our maximum \emph{a posteriori} model as
 %
 The matrix that we must invert in Equation~(\ref{eq:model}) has dimensions ($N_{dat} \times N_{dat}$),
 while that in Equation~(\ref{eq:model_slow}) is ($N_{reg} \times N_{reg}$). Since
-$M \gtrsim 2N$, casting the model in this form can considerably speed up the
+$N_{reg} \gtrsim 2N_{dat}$, casting the model in this form can considerably speed up the
 computation. In practice, we pre-compute the three matrices $\mathbf{X^2_n}$ at the beginning
 of the cross-validation step, so the only time-consuming operation in Equation~(\ref{eq:model})
 is the inversion.
 
 Despite these simplifications, solving for the optimal set of regularization parameters $\{ \lambda_1, \lambda_2, \lambda_3 \}$
 still requires a costly minimization of the three-dimensional function 
-$\sigma_\mathrm{V}(\lambda_1, \lambda_2, \lambda_3)$, where
-$\sigma_\mathrm{V}$ is the scatter in the validation set. Our grid along each $\lambda_n$ axis
-spans 36 logarithmically-spaced values between $10^{0}$ and $10^{18}$ plus $\lambda_n = 0$, so a full grid search over 
-$\sigma_\mathrm{V}$ would require $37^3 =$ 50,653 matrix inversions
-in Equation~(\ref{eq:model}).
-
+$\sigma_\mathrm{v}(\lambda_1, \lambda_2, \lambda_3)$, where
+$\sigma_\mathrm{v}$ is the scatter in the validation set. 
+%
+%Our grid along each $\lambda_n$ axis
+%spans 36 logarithmically-spaced values between $10^{0}$ and $10^{18}$ plus $\lambda_n = 0$, so a full grid search over 
+%$\sigma_\mathrm{v}$ would require $37^3 =$ 50,653 matrix inversions
+%in Equation~(\ref{eq:model}).
 % TODO: Discuss why using a non-linear minimizer isn't a great idea
-
+%
 In the interest of computational speed, we perform one final simplification. Since we
 expect the first order PLD regressors to contain most of the de-trending information,
 with each successive PLD order providing a small correction term to the fit, we break
@@ -273,77 +301,37 @@ for $\hat{\lambda}_3$ by fixing the first and second order parameters at their o
 values:
 %
 \begin{align}
-\hat{\lambda}_1 &= \argmin \sigma_\mathrm{V}(\lambda_1, \lambda_2 = 0,               \lambda_3 = 0) \nonumber\\
-\hat{\lambda}_2 &= \argmin \sigma_\mathrm{V}(\lambda_2, \lambda_1 = \hat{\lambda}_1, \lambda_3 = 0) \nonumber\\
-\hat{\lambda}_3 &= \argmin \sigma_\mathrm{V}(\lambda_3, \lambda_1 = \hat{\lambda}_1, \lambda_2 = \hat{\lambda}_2).
+\hat{\lambda}_1 &= \argmin \sigma_\mathrm{v}(\lambda_1, \lambda_2 = 0,               \lambda_3 = 0) \nonumber\\
+\hat{\lambda}_2 &= \argmin \sigma_\mathrm{v}(\lambda_2, \lambda_1 = \hat{\lambda}_1, \lambda_3 = 0) \nonumber\\
+\hat{\lambda}_3 &= \argmin \sigma_\mathrm{v}(\lambda_3, \lambda_1 = \hat{\lambda}_1, \lambda_2 = \hat{\lambda}_2).
 \end{align}
 %
-This reduces the number of steps in the grid search to $37\times 3 = 111$, which is much
-more computationally tractable. It is important to note that there is no \emph{a priori} reason
-that this method should yield the global minimum of $\sigma_\mathrm{V}$; in fact, it very
+%This reduces the number of steps in the grid search to $37\times 3 = 111$, which is much
+%more computationally tractable. 
+It is important to note that there is no \emph{a priori} reason
+that this method should yield the global minimum of $\sigma_\mathrm{v}$; in fact, it very
 likely does not. However, since we allow for $\lambda_n = 0$ in our grid search, this approximation
 cannot lead to overfitting, as it will always prefer a lower-order PLD model to one
 with higher scatter in the validation set. While it may lead to \emph{under}fitting,
 in practice we find that it works surprisingly well,
 surpassing the de-trending power of the \texttt{EVEREST} model in Paper I (see \S\ref{?}).
 
-%\section{Transit search}
-%\label{sec:transit_search}
-%Defining
-%%
-%\begin{align}
-%\boldsymbol{\chi} \equiv \sum_n \lambda_n^2 \mathbf{X^2_n},
-%\end{align}
-%%
-%we may write
-%%
-%\begin{align}
-%\mathbf{m} = \left(\boldsymbol{\chi} + \lambda_\tau^2 \boldsymbol{\tau} \hspace{-2pt} \cdot \hspace{-2pt} \boldsymbol{\tau^\top} \right)
-%             \cdot
-%             \left(
-%             \boldsymbol{\chi} + \mathbf{K} + \lambda_\tau^2 \boldsymbol{\tau} \hspace{-2pt} \cdot \hspace{-2pt} \boldsymbol{\tau^\top}
-%             \right)^{-1} 
-%             \cdot
-%             \mathbf{y}.
-%\end{align}
-%Applying the Sherman-Morrison formula, the second term in parentheses may be expressed as
-%%
-%\begin{align}
-%\left( \boldsymbol{\chi} + \mathbf{K} \right)^{-1} 
-%-
-%\frac{
-%        \left( \boldsymbol{\chi} + \mathbf{K} \right)^{-1} 
-%        \cdot
-%        \boldsymbol{\tau} \hspace{-2pt} \cdot \hspace{-2pt} \boldsymbol{\tau^\top}
-%        \cdot
-%        \left( \boldsymbol{\chi} + \mathbf{K} \right)^{-1} 
-%}
-%{
-%        \lambda_\tau^{-2} + \boldsymbol{\tau^\top}
-%        \cdot
-%        \left( \boldsymbol{\chi} + \mathbf{K} \right)^{-1} 
-%        \cdot
-%        \boldsymbol{\tau}.
-%}
-%\end{align}
-%Defining
-%%
-%\begin{align}
-%\boldsymbol{\xi} \equiv \left( \boldsymbol{\chi} + \mathbf{K} \right)^{-1},
-%\end{align}
-%%
-%our model becomes
-%%
-%\begin{align}
-%\mathbf{m} = \left(\boldsymbol{\chi} + \lambda_\tau^2 \boldsymbol{\tau} \hspace{-2pt} \cdot \hspace{-2pt} \boldsymbol{\tau^\top} \right)
-%             \cdot
-%             \left(
-%             \boldsymbol{\xi} - \frac{\boldsymbol{\xi} \hspace{-2pt} \cdot \hspace{-2pt} \boldsymbol{\tau} \hspace{-2pt} \cdot \hspace{-2pt} \boldsymbol{\tau^\top} \hspace{-2pt} \cdot \hspace{-2pt} \boldsymbol{\xi}}
-%                              {\lambda_\tau^{-2} + \boldsymbol{\tau^\top} \hspace{-2pt} \cdot \hspace{-2pt} \boldsymbol{\xi} \hspace{-2pt} \cdot \hspace{-2pt} \boldsymbol{\tau}}
-%             \right)
-%             \cdot
-%             \mathbf{y}.
-%\end{align}
+\section{Results}
+\label{sec:results}
+
+\subsection{Ridge Regression}
+\begin{figure}[ht]
+  \begin{center}
+      \includegraphics[width=0.47\textwidth]{figures/ridge_reg.pdf}
+       \caption{CDPP comparison between PLD de-trending with ridge regression (this paper) and PLD
+                de-trending with PCA (Paper I) for a sample of 2,700 randomly selected campaign 6
+                stars. Plotted is the star-by-star difference in the CDPP values for each pipeline,
+                normalized to the PCA CDPP (blue dots); stars with negative values have lower CDPP 
+                when de-trended with ridge regression. The black line is the median CDPP difference
+                in 0.5 magnitude-wide bins.}
+     \label{fig:ridge_reg}
+  \end{center}
+\end{figure}
 
 \section{Injection Tests}
 \label{sec:inj}
@@ -351,7 +339,7 @@ surpassing the de-trending power of the \texttt{EVEREST} model in Paper I (see \
 \begin{figure}[ht]
   \begin{center}
       \includegraphics[width=0.47\textwidth]{figures/injections.pdf}
-       \caption{Hello.}
+       \caption{Injection/recovery statistics based on 2,700 randomly selected stars from campaign 6.}
      \label{fig:injections}
   \end{center}
 \end{figure}

@@ -1,8 +1,7 @@
-everest.aux
-everest.bbl
-everest.blg
-everest.log
-everest.out
-everest.pdf
-everestNotes.bib
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*Notes.bib
 *.pdf
