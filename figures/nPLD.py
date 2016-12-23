@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 '''
-ridge_reg.py
-------------
+nPLD.py
+-------
 
 '''
 
@@ -15,7 +15,7 @@ from matplotlib.lines import Line2D
 import numpy as np
 
 campaign = 6.0
-model = 'sPLD'
+model = 'nPLD'
 
 # Get statistics
 outfile = os.path.join(EVEREST_DAT, 'k2', 'stats', '%s_c%02d.cdpp' % (model, int(campaign)))
@@ -61,7 +61,7 @@ for ax in axes:
       by[b] = np.median(y[i])
   ax.plot(bins, by, 'k-', lw = 2)
   ax.set_xlabel('Kepler Magnitude', fontsize = 18)
-axes[0].set_ylabel(r'$\frac{\mathrm{CDPP}_{\mathrm{L2}} - \mathrm{CDPP}_{\mathrm{PCA}}}{\mathrm{CDPP}_{\mathrm{PCA}}}$', fontsize = 22)
+axes[0].set_ylabel(r'$\frac{\mathrm{CDPP}_{\mathrm{nPLD}} - \mathrm{CDPP}_{\mathrm{PCA}}}{\mathrm{CDPP}_{\mathrm{PCA}}}$', fontsize = 22)
 axes[0].set_ylim(-1,1)
 axes[1].set_ylim(-0.3,0.3)
 
@@ -81,4 +81,4 @@ line2 = Line2D((coord1[0],coord2[0]),(coord1[1],coord2[1]),
 fig.lines = line1, line2
 
 # Save
-fig.savefig('ridge_reg.pdf', bbox_inches = 'tight')
+fig.savefig('nPLD.pdf', bbox_inches = 'tight')

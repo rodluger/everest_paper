@@ -29,6 +29,7 @@
 \newcommand{\avg}[1]{\langle #1 \rangle}
 \newcommand{\bavg}[1]{\bigg\langle #1 \bigg\rangle}
 \newcommand{\tab}[1]{\hspace{.2\textwidth}\rlap{#1}}
+\newcommand{\Kp}{\ensuremath{K_\mathrm{p}}}
 \DeclareMathOperator*{\argmin}{arg\,min}
 
 \shorttitle{EVEREST2.0}
@@ -47,7 +48,10 @@ Daniel Foreman-Mackey\altaffilmark{1,3}, Nicholas Saunders\altaffilmark{1}, Rory
 We present an update to the \texttt{EVEREST} pipeline.
 \end{abstract}
 
-\section{Ridge Regression}
+\section{The PLD Model}
+\label{sec:model}
+
+\subsection{Ridge Regression}
 \label{sec:ridge}
 Given a timeseries $\mathbf{y}$ with $N_{dat}$ data points, we wish to find the linear
 combination of $N_{reg}$ regressors that best fits the instrumental component of $\mathbf{y}$.
@@ -111,8 +115,7 @@ Gaussian prior on each of the weights $\mathbf{w}$, so that the posterior likeli
                    -\frac{1}{2} \log\left|\mathbf{\Lambda}\right|,
 \end{align}
 %
-where $\mathbf{\Lambda}$ is the 
-($N_{reg} \times N_{reg}$) diagonal regularization matrix,
+where $\mathbf{\Lambda}$ is the ($N_{reg} \times N_{reg}$) diagonal regularization matrix,
 %
 \begin{align}
 \label{eq:Lambda}
@@ -162,11 +165,16 @@ with corresponding model
 \cdot \mathbf{X}^\top \cdot \mathbf{K}^{-1} \cdot \mathbf{y}.
 \end{align}
 
-\section{Cross-validation}
-Similarly to Paper I, we solve for $\mathbf{\Lambda}$ by cross-validation. 
-% TODO: Details here.
-In principle, each of the $\lambda_n$ in $\mathbf{\Lambda}$ could take on a different value, but solving for each one
-requires minimizing an $N_{reg}$-dimensional function and is not computationally tractable.
+\subsection{Cross-validation}
+\label{sec:crossval}
+Similarly to Paper I, we solve for $\mathbf{\Lambda}$ by cross-validation. For each value
+of $\mathbf{\Lambda}$, the model is trained on one part of the light curve (the training set)
+and used to de-trend the other part of the light curve (the validation set). The value of 
+$\mathbf{\Lambda}$ that results in the minimum scatter in the validation set is then chosen for
+the de-trending. 
+
+In principle, each of the $\lambda_n$ in $\mathbf{\Lambda}$ could take on a different value, 
+but solving for each one requires minimizing an $N_{reg}$-dimensional function and is not computationally tractable.
 Instead, we simplify the problem by requiring that all regressors of the same order have the
 same regularization parameter $\lambda$. Provided we write the third order design matrix in the form
 %
@@ -199,9 +207,10 @@ where $\mathbf{\Lambda_n} = \lambda_{n}^2\mathbf{I}$ is the
 $n^\mathrm{th}$ order regularization matrix and $\lambda_{n}^2$ is the variance
 of the prior on the $n^\mathrm{th}$ order regressors. 
 
-For a typical light curve segment of a \emph{K2} star with 30 aperture pixels, $N_{dat} \sim\ $2,000 and
-$N_{reg} \sim\ $5,000. Evaluating the matrix inverse in Equation~(\ref{eq:model_slow})
-is thus computationally expensive, and becomes prohibitive when performing cross-validation,
+A typical \emph{K2} star with 30 aperture pixels has $N_{reg} \sim\ $5,000 regressors and
+$N_{dat} \sim\ $500 data points in each cross-validation light curve segment 
+(see \S\ref{sec:implementation}). Evaluating the matrix inverse in Equation~(\ref{eq:model_slow})
+is thus computationally expensive, and becomes prohibitive during cross-validation,
 since this must be done for every set of $\lambda_{n}$'s. Fortunately, we can reduce 
 the number of calculations with some linear algebra. First, we apply the Woodbury matrix 
 identity to Equation~(\ref{eq:model_slow}), obtaining
@@ -274,23 +283,27 @@ We may thus re-write our maximum \emph{a posteriori} model as
 %
 The matrix that we must invert in Equation~(\ref{eq:model}) has dimensions ($N_{dat} \times N_{dat}$),
 while that in Equation~(\ref{eq:model_slow}) is ($N_{reg} \times N_{reg}$). Since
-$N_{reg} \gtrsim 2N_{dat}$, casting the model in this form can considerably speed up the
+$N_{reg} \sim 10N_{dat}$, casting the model in this form can greatly speed up the
 computation. In practice, we pre-compute the three matrices $\mathbf{X^2_n}$ at the beginning
 of the cross-validation step, so the only time-consuming operation in Equation~(\ref{eq:model})
 is the inversion.
 
-Despite these simplifications, solving for the optimal set of regularization parameters $\{ \lambda_1, \lambda_2, \lambda_3 \}$
-still requires a costly minimization of the three-dimensional function 
+\subsection{Neighboring Stars}
+\label{sec:neighboring}
+
+
+\section{Implementation}
+\label{sec:implementation}
+
+\subsection{Minimization}
+\label{sec:minimization}
+Solving for the optimal set of regularization parameters 
+$\{ \lambda_1, \lambda_2, \lambda_3 \}$
+requires a costly minimization of the three-dimensional function 
 $\sigma_\mathrm{v}(\lambda_1, \lambda_2, \lambda_3)$, where
-$\sigma_\mathrm{v}$ is the scatter in the validation set. 
+$\sigma_\mathrm{v}$ is the scatter in the validation set.
 %
-%Our grid along each $\lambda_n$ axis
-%spans 36 logarithmically-spaced values between $10^{0}$ and $10^{18}$ plus $\lambda_n = 0$, so a full grid search over 
-%$\sigma_\mathrm{v}$ would require $37^3 =$ 50,653 matrix inversions
-%in Equation~(\ref{eq:model}).
-% TODO: Discuss why using a non-linear minimizer isn't a great idea
-%
-In the interest of computational speed, we perform one final simplification. Since we
+In the interest of computational speed, we perform a simplification. Since we
 expect the first order PLD regressors to contain most of the de-trending information,
 with each successive PLD order providing a small correction term to the fit, we break
 down the minimization problem into three separate one-dimensional problems.
@@ -301,9 +314,9 @@ for $\hat{\lambda}_3$ by fixing the first and second order parameters at their o
 values:
 %
 \begin{align}
-\hat{\lambda}_1 &= \argmin \sigma_\mathrm{v}(\lambda_1, \lambda_2 = 0,               \lambda_3 = 0) \nonumber\\
-\hat{\lambda}_2 &= \argmin \sigma_\mathrm{v}(\lambda_2, \lambda_1 = \hat{\lambda}_1, \lambda_3 = 0) \nonumber\\
-\hat{\lambda}_3 &= \argmin \sigma_\mathrm{v}(\lambda_3, \lambda_1 = \hat{\lambda}_1, \lambda_2 = \hat{\lambda}_2).
+\hat{\lambda}_1 &= \argmin \sigma_\mathrm{v}(\lambda_1)\bigg|_{\lambda_2 = 0,\               \lambda_3 = 0} \nonumber\\
+\hat{\lambda}_2 &= \argmin \sigma_\mathrm{v}(\lambda_2)\bigg|_{\lambda_1 = \hat{\lambda}_1,\ \lambda_3 = 0} \nonumber\\
+\hat{\lambda}_3 &= \argmin \sigma_\mathrm{v}(\lambda_3)\bigg|_{\lambda_1 = \hat{\lambda}_1,\ \lambda_2 = \hat{\lambda}_2}
 \end{align}
 %
 %This reduces the number of steps in the grid search to $37\times 3 = 111$, which is much
@@ -333,6 +346,21 @@ surpassing the de-trending power of the \texttt{EVEREST} model in Paper I (see \
   \end{center}
 \end{figure}
 
+\subsection{Neighboring PLD}
+\begin{figure}[ht]
+  \begin{center}
+      \includegraphics[width=0.47\textwidth]{figures/nPLD.pdf}
+       \caption{CDPP comparison between PLD de-trending with ridge regression + neighboring targets 
+                (this paper) and PLD
+                de-trending with PCA (Paper I) for a sample of 2,700 randomly selected campaign 6
+                stars. Plotted is the star-by-star difference in the CDPP values for each pipeline,
+                normalized to the PCA CDPP (blue dots); stars with negative values have lower CDPP 
+                when de-trended with ridge regression. The black line is the median CDPP difference
+                in 0.5 magnitude-wide bins.}
+     \label{fig:nPLD}
+  \end{center}
+\end{figure}
+
 \section{Injection Tests}
 \label{sec:inj}
 
@@ -341,6 +369,18 @@ surpassing the de-trending power of the \texttt{EVEREST} model in Paper I (see \
       \includegraphics[width=0.47\textwidth]{figures/injections.pdf}
        \caption{Injection/recovery statistics based on 2,700 randomly selected stars from campaign 6.}
      \label{fig:injections}
+  \end{center}
+\end{figure}
+
+\section{Saturated Stars}
+\label{sec:saturated}
+
+\begin{figure}[ht]
+  \begin{center}
+      \includegraphics[width=0.47\textwidth]{figures/saturated_star.pdf}
+       \caption{EPIC 202063160, a saturated \Kp = 9.2 campaign 0 eclipsing
+       binary.}
+     \label{fig:saturated_star}
   \end{center}
 \end{figure}
 
