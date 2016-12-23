@@ -3,6 +3,7 @@
 To compile the PDF:
 
 ```
+./make_figures.sh
 pdflatex everest
 bibtex everest
 pdflatex everest
