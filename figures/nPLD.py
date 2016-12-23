@@ -18,7 +18,7 @@ campaign = 6.0
 model = 'nPLD'
 
 # Get statistics
-outfile = os.path.join(EVEREST_DAT, 'k2', 'stats', '%s_c%02d.cdpp' % (model, int(campaign)))
+outfile = os.path.join(EVEREST_SRC, 'missions', 'k2', 'tables', 'c%02d_%s.cdpp' % (int(campaign), model))
 epic, kp, cdpp6r, cdpp6, cdpp6v, _, out, tot, saturated = np.loadtxt(outfile, unpack = True, skiprows = 2)
 epic = np.array(epic, dtype = int)
 saturated = np.array(saturated, dtype = int)

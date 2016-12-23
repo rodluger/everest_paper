@@ -21,10 +21,6 @@ axes = axes.flatten()
 # Loop over all campaigns
 for campaign, ax in enumerate(axes):
   
-  # DEBUG
-  if campaign == 5 or campaign == 6:
-    continue
-  
   # Everest 2
   _,_,_,_,_,_, out_everest2, tot_everest2, _ = np.loadtxt(os.path.join(EVEREST_SRC, 'missions',
                                                'k2', 'tables', 'c%02d_nPLD.cdpp' % int(campaign)), 
@@ -80,5 +76,8 @@ for campaign, ax in enumerate(axes):
   ymax = ax.get_ylim()[1]
   ax.set_ylim(0, 1.2 * ymax)
   ax.set_title('C%02d' % campaign, fontsize = 16)
+
+axes[7].set_xlabel('Kepler Magnitude', fontsize = 22, labelpad = 20)
+axes[3].set_ylabel('Number of Stars', fontsize = 24, labelpad = 20)
   
-pl.show()
+fig.savefig('outliers.pdf', bbox_inches = 'tight')
