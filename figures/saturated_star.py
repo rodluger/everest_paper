@@ -83,3 +83,4 @@ ax_ap.set_ylim(10, 28)
 
 # Save
 fig.savefig('saturated_star.pdf', bbox_inches = 'tight')
+pl.close()

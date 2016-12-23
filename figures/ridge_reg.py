@@ -82,3 +82,4 @@ fig.lines = line1, line2
 
 # Save
 fig.savefig('ridge_reg.pdf', bbox_inches = 'tight')
+pl.close()

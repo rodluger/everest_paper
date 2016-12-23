@@ -81,3 +81,4 @@ axes[7].set_xlabel('Kepler Magnitude', fontsize = 22, labelpad = 20)
 axes[3].set_ylabel('Number of Stars', fontsize = 24, labelpad = 20)
   
 fig.savefig('outliers.pdf', bbox_inches = 'tight')
+pl.close()

@@ -84,3 +84,4 @@ for model in ['everest1', 'k2sff', 'k2sc']:
     ax.set_title('C%02d' % campaign, fontsize = 16)
 
   fig.savefig('cdpp_%s.pdf' % model, bbox_inches = 'tight')
+  pl.close()
