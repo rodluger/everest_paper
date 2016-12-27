@@ -13,7 +13,7 @@ import os
 import matplotlib.pyplot as pl
 import numpy as np
 
-fig, axes = pl.subplots(3, 3, figsize = (15, 10))
+fig, axes = pl.subplots(3, 3, figsize = (15, 13))
 fig.subplots_adjust(left = 0.05, right = 0.975, bottom = 0.05, 
                     top = 0.95, hspace = 0.3, wspace = 0.20)
 axes = axes.flatten()
@@ -72,13 +72,13 @@ for campaign, ax in enumerate(axes):
   ax.hist(good_everest2, 25, range = (xmin, xmax), histtype = 'step', color = '#0033ee', label = 'Everest2')
   ax.hist(good_everest2, 25, range = (xmin, xmax), histtype = 'stepfilled', color = '#0033ee', alpha = 0.05, ec = None)
   ax.margins(0, None)
-  ax.legend(loc = 'upper left', fontsize = 10)
+  ax.legend(loc = 'upper left', fontsize = 14)
   ymax = ax.get_ylim()[1]
   ax.set_ylim(0, 1.2 * ymax)
-  ax.set_title('C%02d' % campaign, fontsize = 16)
+  ax.set_title('C%02d' % campaign, fontsize = 26)
 
-axes[7].set_xlabel('Kepler Magnitude', fontsize = 22, labelpad = 20)
-axes[3].set_ylabel('Number of Stars', fontsize = 24, labelpad = 20)
+axes[7].set_xlabel('Kepler Magnitude', fontsize = 34, labelpad = 20)
+axes[3].set_ylabel('Number of Stars', fontsize = 34, labelpad = 20)
   
 fig.savefig('outliers.pdf', bbox_inches = 'tight')
 pl.close()

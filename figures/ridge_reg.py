@@ -61,7 +61,8 @@ for ax in axes:
       by[b] = np.median(y[i])
   ax.plot(bins, by, 'k-', lw = 2)
   ax.set_xlabel('Kepler Magnitude', fontsize = 18)
-axes[0].set_ylabel(r'$\frac{\mathrm{CDPP}_{\mathrm{L2}} - \mathrm{CDPP}_{\mathrm{PCA}}}{\mathrm{CDPP}_{\mathrm{PCA}}}$', fontsize = 22)
+  ax.set_rasterization_zorder(0)
+axes[0].set_ylabel(r'$\frac{\mathrm{CDPP}_{\mathrm{L2}} - \mathrm{CDPP}_{\mathrm{EVEREST1}}}{\mathrm{CDPP}_{\mathrm{EVEREST1}}}$', fontsize = 22)
 axes[0].set_ylim(-1,1)
 axes[1].set_ylim(-0.3,0.3)
 
