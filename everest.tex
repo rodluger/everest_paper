@@ -347,9 +347,74 @@ We optimize the GP. To prevent too much power in PLD, we initialize GP at large 
 \label{sec:impl_breakpoints}
 We split the light curves up.
 
-\subsection{Neighboring Targets}
+\subsection{\texttt{nPLD}}
 \label{sec:impl_neighboring}
-We select neighboring targets.
+In principle, the larger the number of neighboring PLD vectors we include in the
+design matrix, the higher the de-trending power of our model. However, adding 
+regressors significantly increases computing time, so we would like to instead select
+a small set of high signal-to-noise regressors that capture most of the spacecraft
+motion information. Moreover, since we employ a single prior for all $n^{th}$ order
+regressors, adding many foreign PLD vectors effectively results in an exchange of
+local for global de-trending power (\S\ref{sec:neighboring}) and in practice results
+in poorer quality light curves. After much experimenting, we find that the ideal number
+of neighboring stars to include in the design matrix is about ten. We therefore de-trend
+each $K2$ target with the aid of the PLD vectors of ten randomly selected bright 
+($11 \leq \Kp \leq 13$) stars on the same detector module as the target. To minimize
+contamination of the target by outliers in its neighbors' fluxes, we linearly
+interpolate over all neighbor data with flagged \texttt{QUALITY} bits. Finally, for
+computational reasons, we neglect all cross terms of the form $\prod_{i \neq j} p_i p_j$ 
+and $\prod_{i \neq j | i \neq k} p_i p_j p_k$, where $p_i$ is the flux in the $i^{th}$ pixel,
+when computing the neighbors' PLD vectors. Cross terms typically encode information
+specific to the sets of pixels from which they are computed and aid in correcting
+features such as thruster firing discontinuities \citep{Luger16}. Cross terms from
+stars other than the target in question are therefore of little help in the de-trending
+and can be safely neglected.
+
+One potential pitfall of \texttt{nPLD} is that if the PLD assumptions break down for
+any of the neighboring targets, the PLD regressors may become contaminated with
+astrophysical information from that neighbor. This is not in general an issue, since
+overfitting would only occur if an astrophysical signal in the target star and in
+its neighbor had the same period and the same phase. However, in the (unlikely) case
+that PLD fails for the neighboring star and this star happens to be an eclipsing binary 
+or a transiting exoplanet host, it is possible that its transit signals could get imprinted onto
+the target star's de-trended light curve, resulting in potential false positive planet
+detections down the line. The two cases relevant to $K2$ in which PLD could fail in such
+a way are for saturated stars and stars with bright contaminant sources in their
+apertures \citep{Luger16}. As we show in \S\ref{sec:impl_saturated} below, it is 
+straightforward to adapt PLD to work reliably saturated stars. But while 
+\texttt{EVEREST 2.0} is more robust against overfitting of crowded stars 
+(\S\ref{sec:crowding}), highly crowded apertures remain an issue for PLD. When de-trending
+with \texttt{nPLD}, we therefore select neighboring stars with no other known sources
+in their apertures that are bright enough ($\Delta \Kp < 5$) to contaminate the PLD
+vectors.
+
+\subsection{Saturated stars}
+\label{sec:impl_saturated}
+
+Discuss saturated PLD.
+
+\begin{figure}[ht]
+  \begin{center}
+      \includegraphics[width=0.47\textwidth]{figures/saturated_star.pdf}
+       \caption{EPIC 202063160, a saturated \Kp = 9.2 campaign 0 eclipsing
+       binary. Shown is a portion of the raw light curve (top), the light curve ``de-trended''
+       with \texttt{EVEREST 1.0} (center), and the light curve de-trended with \texttt{EVEREST 2.0}
+       (bottom). The pixel image is shown at the right on a linear scale, with the adopted aperture
+       contour indicated in red. The three columns highlighted in red contain saturated
+       pixels. Despite a great improvement in the CDPP, \texttt{EVEREST 1.0} leads to severe
+       overfitting, causing the eclipses to all but disappear. This is due to the fact that
+       saturated pixels contain nearly no astrophysical information, as the signal
+       overflows into the pixels at the top and bottom of the saturated columns; this 
+       invalidates the basic assumption of PLD that all pixels contain the same amount
+       of astrophysical information. To correct for this, we collapse each saturated
+       column into a single pixel. Since the flux is approximately conserved along the bleed
+       trail, this method ensures that astrophysical information is constant across the aperture.
+       While this leads to the loss of some of the instrumental components used by PLD,
+       in practice we find that the unsaturated pixels still contain enough
+       information to properly de-trend the target.}
+     \label{fig:saturated_star}
+  \end{center}
+\end{figure}
 
 \subsection{Cross-validation}
 \label{sec:impl_crossval}
@@ -385,6 +450,22 @@ with higher scatter in the validation set. While it may lead to \emph{under}fitt
 in practice we find that it works surprisingly well,
 surpassing the de-trending power of the \texttt{EVEREST} model in Paper I (see \S\ref{?}).
 
+\begin{figure}[ht]
+  \begin{center}
+      \includegraphics[width=0.47\textwidth]{figures/pPLD.pdf}
+       \caption{pPLD.}
+     \label{fig:pPLD}
+  \end{center}
+\end{figure}
+
+\begin{figure}[ht]
+  \begin{center}
+      \includegraphics[width=0.3\textwidth]{figures/crossval.pdf}
+       \caption{Crossval.}
+     \label{fig:crossval}
+  \end{center}
+\end{figure}
+
 \section{Results}
 \label{sec:results}
 
@@ -413,32 +494,6 @@ surpassing the de-trending power of the \texttt{EVEREST} model in Paper I (see \
                 on the same module. This method leads to a robust CDPP improvement of ${\sim}10$\% for bright ($\Kp \lesssim 13$) stars
                 and ${\sim}20$\% for fainter stars.}
      \label{fig:nPLD}
-  \end{center}
-\end{figure}
-
-\section{Saturated Stars}
-\label{sec:saturated}
-
-\begin{figure}[ht]
-  \begin{center}
-      \includegraphics[width=0.47\textwidth]{figures/saturated_star.pdf}
-       \caption{EPIC 202063160, a saturated \Kp = 9.2 campaign 0 eclipsing
-       binary. Shown is a portion of the raw light curve (top), the light curve ``de-trended''
-       with \texttt{EVEREST 1.0} (center), and the light curve de-trended with \texttt{EVEREST 2.0}
-       (bottom). The pixel image is shown at the right on a linear scale, with the adopted aperture
-       contour indicated in red. The three columns highlighted in red contain saturated
-       pixels. Despite a great improvement in the CDPP, \texttt{EVEREST 1.0} leads to severe
-       overfitting, causing the eclipses to all but disappear. This is due to the fact that
-       saturated pixels contain nearly no astrophysical information, as the signal
-       overflows into the pixels at the top and bottom of the saturated columns; this 
-       invalidates the basic assumption of PLD that all pixels contain the same amount
-       of astrophysical information. To correct for this, we collapse each saturated
-       column into a single pixel. Since the flux is approximately conserved along the bleed
-       trail, this method ensures that astrophysical information is constant across the aperture.
-       While this leads to the loss of some of the instrumental components used by PLD,
-       in practice we find that the unsaturated pixels still contain enough
-       information to properly de-trend the target.}
-     \label{fig:saturated_star}
   \end{center}
 \end{figure}
 

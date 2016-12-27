@@ -44,20 +44,18 @@ alpha = min(0.1, 2000. / (1 + len(epic)))
 y = (cdpp6 - cdpp6_1) / cdpp6_1
 for ax in axes:
   ax.scatter(kp[unsat], y[unsat], color = 'b', marker = '.', alpha = alpha, zorder = -1)
-  ax.scatter(kp[sat], y[sat], color = 'r', marker = '.', alpha = alpha, zorder = -1)
-  ax.set_xlim(8,18)
+  ax.set_xlim(11,18)
   ax.axhline(0, color = 'gray', lw = 2, zorder = -99, alpha = 0.5)
   ax.axhline(0.5, color = 'gray', ls = '--', lw = 2, zorder = -99, alpha = 0.5)
   ax.axhline(-0.5, color = 'gray', ls = '--', lw = 2, zorder = -99, alpha = 0.5)
-  bins = np.arange(7.5,18.5,0.5)
+  bins = np.arange(10.5,18.5,0.5)
   # Bin the CDPP
   by = np.zeros_like(bins) * np.nan
   for b, bin in enumerate(bins):
     i = np.where((y > -np.inf) & (y < np.inf) & (kp >= bin - 0.5) & (kp < bin + 0.5))[0]
     if len(i) > 10:
       by[b] = np.median(y[i])
-  ax.plot(bins[:9], by[:9], 'r--', lw = 2)
-  ax.plot(bins[8:], by[8:], 'k-', lw = 2)
+  ax.plot(bins, by, 'k-', lw = 2)
   ax.set_xlabel('Kepler Magnitude', fontsize = 18)
   ax.set_rasterization_zorder(0)
 axes[0].set_ylabel(r'$\frac{\mathrm{CDPP}_{\mathrm{pPLD}} - \mathrm{CDPP}_{\mathrm{nPLD}}}{\mathrm{CDPP}_{\mathrm{nPLD}}}$', fontsize = 22)
@@ -70,11 +68,11 @@ axes[0].axhline(0.15, color = 'k', ls = '-', alpha = 1, lw = 1)
 axes[0].axhline(-0.15, color = 'k', ls = '-', alpha = 1, lw = 1)
 transFigure = fig.transFigure.inverted()
 coord1 = transFigure.transform(axes[0].transData.transform([18,0.15]))
-coord2 = transFigure.transform(axes[1].transData.transform([8,0.15]))
+coord2 = transFigure.transform(axes[1].transData.transform([11,0.15]))
 line1 = Line2D((coord1[0],coord2[0]),(coord1[1],coord2[1]),
                                 transform=fig.transFigure, color = 'k', ls = '-', alpha = 1, lw = 1)
 coord1 = transFigure.transform(axes[0].transData.transform([18,-0.15]))
-coord2 = transFigure.transform(axes[1].transData.transform([8,-0.15]))
+coord2 = transFigure.transform(axes[1].transData.transform([11,-0.15]))
 line2 = Line2D((coord1[0],coord2[0]),(coord1[1],coord2[1]),
                                 transform=fig.transFigure, color = 'k', ls = '-', alpha = 1, lw = 1)
 fig.lines = line1, line2
