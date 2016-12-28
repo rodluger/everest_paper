@@ -32,12 +32,12 @@
 \newcommand{\Kp}{\ensuremath{K_\mathrm{p}}}
 \DeclareMathOperator*{\argmin}{arg\,min}
 
-\shorttitle{EVEREST2.0}
+\shorttitle{EVEREST 2.0}
 \shortauthors{Luger et al. 2016}
 
 \begin{document}
 
-\title{EVEREST 2.0}
+\title{An update to the EVEREST K2 pipeline:\\ Short cadence, saturated stars, and Kepler-like photometry down to $\Kp = 15$}
 \author{Rodrigo Luger\altaffilmark{1,2}, Eric Agol\altaffilmark{1,2}, Ethan Kruse\altaffilmark{1}, \\
 Daniel Foreman-Mackey\altaffilmark{1,3}, Nicholas Saunders\altaffilmark{1}, Rory Barnes\altaffilmark{1,2}}
 \altaffiltext{1}{Astronomy Department, University of Washington, Box 351580, Seattle, WA 98195, USA; \href{mailto:rodluger@uw.edu}{rodluger@uw.edu}}
@@ -48,14 +48,34 @@ Daniel Foreman-Mackey\altaffilmark{1,3}, Nicholas Saunders\altaffilmark{1}, Rory
 We present an update to the \texttt{EVEREST} pipeline.
 \end{abstract}
 
+\section{Introduction}
+\label{sec:intro}
+Introduction.
+
 \section{The PLD Model}
 \label{sec:model}
+Here we describe the mathematical formulation of the \texttt{EVEREST}
+pixel level decorrelation (PLD) model. In PLD, products of the fractional fluxes in each pixel
+of the target aperture are used as regressors in a linear model:
+%
+\begin{align}
+\label{eq:pldmodel}
+\mathbf{m} = &\sum\limits_{i}                                 a_i     \frac{\mathbf{p}_{i}}                             { \sum\limits_{n}\mathbf{p}_{n}} +     \nonumber\\
+             &\sum\limits_{i} \sum\limits_{j}                 b_{ij}  \frac{\mathbf{p}_{i}\mathbf{p}_{j}}               {(\sum\limits_{n}\mathbf{p}_{n})^2} +  \nonumber\\
+             &\sum\limits_{i} \sum\limits_{j} \sum\limits_{k} c_{ijk} \frac{\mathbf{p}_{i}\mathbf{p}_{j}\mathbf{p}_{k}} {(\sum\limits_{n}\mathbf{p}_{n})^3}.
+\end{align}
+%
+In the expression above, $\mathbf{m}$ is the model and $\mathbf{p}_{i}$ is the flux in
+the $i^{th}$ pixel; both are vector quantities defined at an array of times $\mathbf{t}$.
+The $a_i$, $b_{ij}$, and $c_{ijk}$ are the linear weights of the model, which we seek
+to obtain below. For a detailed discussion of the theory behind PLD, see 
+\cite{Deming15} and Paper I. Below we simply discuss its mathematical implementation.
 
 \subsection{Ridge Regression}
 \label{sec:ridge}
 Given a timeseries $\mathbf{y}$ with $N_{dat}$ data points, we wish to find the linear
 combination of $N_{reg}$ regressors that best fits the instrumental component of $\mathbf{y}$.
-Our linear model is thus
+Expressed in vector form, our linear model is thus
 %
 \begin{align}
 \label{eq:xdotw}
@@ -63,8 +83,9 @@ Our linear model is thus
 \end{align}
 %
 where $\mathbf{X}$ is the ($N_{dat} \times N_{reg}$) design matrix constructed from the set
-of regressors and $\mathbf{w}$ is the ($N_{reg} \times 1$) vector of weights. If 
-$\mathbf{w}$ is known, the de-trended light curve is simply
+of regressors (the fractional pixel fluxes in Equation~\ref{eq:pldmodel}) and $\mathbf{w}$ is 
+the ($N_{reg} \times 1$) vector of weights (the set
+$\{a_i, b_{ij}, c_{ijk}\}$). If $\mathbf{w}$ is known, the de-trended light curve is simply
 %
 \begin{align}
 \label{eq:detrended}
@@ -337,7 +358,8 @@ discuss the implementation of \texttt{nPLD} in \S\ref{sec:implementation}.
 
 \subsection{Light curves}
 \label{sec:impl_lightcurves}
-As in Paper I, we downloaded all stars in the $K2$ EPIC catalog and adopted aperture \#15
+As in Paper I, we downloaded all stars in the $K2$ EPIC catalog with long and/or short cadence
+target pixel files and adopted aperture \#15
 from the \texttt{K2SFF} catalog \citep{Vanderburg14,VanderburgJohnson14}. We masked all
 cadences with \texttt{QUALITY} flags 1-9, 11-14, and 16-17, though we still compute the
 model prediction on them. For campaigns 0-2, we remove the background signal as 
@@ -353,7 +375,35 @@ the model with a higher PLD order, to progressively refine the outlier mask.
 
 \subsection{GP Optimization}
 \label{sec:impl_gp}
-We 
+In order to compute the covariance matrix $\mathbf{K}$ for each target, we use a Gaussian
+process (GP), as we did in Paper I. GP optimization can be costly, especially when
+performing model selection over a range of possible kernels and optimizing many
+hyperparameters simultaneously. For this reason, in Paper I we cut corners and performed
+kernel selection based on fits to the autocorrelation function of the light curve, which
+we also used to fix the timescale and/or period of those kernel(s). We then ran a nonlinear
+minimizer to optimize the overall amplitude of the GP. In practice, this worked reasonably
+well, but often failed for light curves dominated by high frequency stellar variability.
+After much experimentation, we decided to forego the kernel selection step in favor of
+using a single carefully optimized white kernel plus a Mat\'ern-3/2 kernel:
+%
+\begin{align}
+\mathbf{K}_{ij} = \sigma^2\delta_{ij} + \alpha \left(1 + \sqrt{3(t_i - t_j)^2}\right) e^{-\sqrt{3(t_i - t_j)^2}/\tau},
+\end{align}
+%
+where the hyperparameters $\sigma$, $\alpha$, and $\tau$ are the white noise amplitude,
+red noise amplitude, and red noise timescale, respectively, and $t_i$ and $t_j$ correspond
+to the timestamps of cadences $i$ and $j$. We initialize the hyperparameters at random
+values and run a nonlinear optimizer to solve for the maximum likelihood (Equation~\ref{eq:like}),
+keeping the PLD model parameters fixed; we repeat this process several times and retain the 
+highest likelihood solution. As with outlier clipping, we progressively optimize the GP
+at each of the three cross-validation steps, so that each time we train the GP on a 
+light curve that is increasingly dominated by stellar variability (as opposed to instrumental
+systematics).
+
+In principle, the quasi-periodic kernels used in Paper I should be better suited to 
+handling variable stars, but in practice we find that a properly optimized Mat\'ern-3/2 
+kernel is flexible enough to fully capture the variability and prevent PLD overfitting.
+We discuss this further in \S\ref{sec:limitations}.
 
 \subsection{Breakpoints}
 \label{sec:impl_breakpoints}
@@ -372,7 +422,7 @@ While this method removes flux discontinuities, it can introduce discontinuities
 derivative of the flux, showing up as spurious ``kinks'' in the light curve. We 
 remove these in a post-processing step (\S\ref{sec:cbvs}).
 
-\subsection{\texttt{nPLD}}
+\subsection{Neighboring stars}
 \label{sec:impl_neighboring}
 In principle, the larger the number of neighboring PLD vectors we include in the
 design matrix, the higher the de-trending power of our model. However, adding 
@@ -467,7 +517,43 @@ eclipse is preserved and the instrumental signal is effectively removed.
 
 \subsection{Short cadence}
 \label{sec:impl_shortcad}
-We de-trend short cadence targets.
+We treat short cadence targets in much the same way as long cadence targets, with the exception
+that we find it necessary to introduce more breakpoints in the light curves. This is
+due primarily to computational reasons (short cadence $K2$ light curves are over $10^5$ cadences
+in length; computing Equation~(\ref{eq:model}) for the entire light curve is not feasible).
+Moreover, we find that noise on sub-30 minute timescales is only properly removed when
+the size of the light curve segments is kept small. In practice, we find that on the order of
+30 breakpoints result in the best de-trending. This might raise concerns of overfitting, but
+since short cadence light curves contains 30 times more data than long cadence light curves,
+and we split the latter into two segments, each of the short cadence segments has about twice
+as many cadences as the long cadence ones.
+
+The major downside of such a large number of segments are the discontinuities that could
+be introduced at each breakpoint. As before, we overcompute the model into adjacent
+segments and match the models at the breakpoints, but some de-trended light curves display
+occasional jumps in either the flux or its derivative.
+
+A second issue with short cadence light curves concerns deep transits and eclipses. As
+we discussed in Paper I, PLD may attempt to fit out these features if they are not
+properly masked, since doing so can result in a very large (but spurious) CDPP improvement.
+With long cadence light curves, transit masking can be done by the user by simply re-computing
+the model with the appropriate cadences masked, since the transits are sparse and their
+presence does not significantly affect the cross-validation step. Moreover, outlier clipping
+usually masks most deep transits anyways, so this is hardly ever a problem.
+However, that is not the case with short cadence light curves, where transits and eclipses 
+span upwards of fifty contiguous cadences. Since these features are so smooth, they are
+not flagged as outliers. And since the transit signal is no longer sparse --- as it makes
+up a substantial fraction of the light curve segment --- it is far more likely to bias
+the cross-validation step. In practice, we find that this leads to substantial 
+\emph{under}fitting of short cadence light curves with deep transits. As $\lambda_n$
+increases, PLD begins to fit out the transit and the scatter in the validation set
+grows, forcing the algorithm to select very low values of $\hat{\lambda}_n$ and resulting
+in de-trended light curves that still contain significant instrumental signals.
+
+We therefore explicitly mask all deep transits and eclipses in the short cadence light
+curves \emph{before} the cross-validation step. Since only deep transits are likely to
+bias the cross-validation, and since the number of short cadence light curves in each
+campaign is relatively small, these can easily be identified by inspection.
 
 \subsection{Cross-validation}
 \label{sec:impl_crossval}
@@ -527,25 +613,6 @@ leads to a less than one percent improvement in the CDPP on average. Given that 
 is more computationally expensive, we adopt the grid search method outlined above when
 producing the \texttt{EVEREST 2.0} catalog.
 
-In addition to being more computationally tractable, there are two major benefits to
-minimizing $\sigma_v$ in this fashion. First, since we perform cross-validation three times
-(once for each PLD order), we are able to progressively refine the outlier masks (\S\ref{sec:impl_lightcurves}) and
-the GP hyperparameters (\S\ref{sec:impl_gp}) for each target in between cross-validation steps. Second, it
-allows for some leeway in how we determine the minimum validation scatter. In Paper I, 
-we sought to minimize the \emph{median} scatter in groups of random 13-cadence segments 
-of the light curve (the validation set). A potential issue with this method is that 
-the noise properties of $K2$ light curves are far from constant over the course of
-an observing campaign; optimizing the regression based on the median (or mean) validation 
-scatter can still, in principle, lead to overfitting in some segments. While splitting the
-light curves into segments with similar noise properties (\S\ref{sec:impl_breakpoints})
-helps with this, we also modify the cross-validation process to prevent localized
-overfitting. For each PLD order $n$ and for each value of $\lambda_n$, 
-we split each light curve segment 
-into three roughly equal sections. For each pair of sections, we train the model on
-them and compute the model prediction in the third section (the validation set). We
-then compute the scatter $\sigma_v$ as the MAD of the
-de-trended validation set after removing the GP prediction.
-
 \begin{figure}[ht]
   \begin{center}
       \includegraphics[width=0.3\textwidth]{figures/crossval.pdf}
@@ -565,6 +632,25 @@ de-trended validation set after removing the GP prediction.
   \end{center}
 \end{figure}
 
+In addition to being more computationally tractable, there are two major benefits to
+minimizing $\sigma_v$ in this fashion. First, since we perform cross-validation three times
+(once for each PLD order), we are able to progressively refine the outlier masks (\S\ref{sec:impl_lightcurves}) and
+the GP hyperparameters (\S\ref{sec:impl_gp}) for each target in between cross-validation steps. Second, it
+allows for some leeway in how we determine the minimum validation scatter. In Paper I, 
+we sought to minimize the \emph{median} scatter in groups of random 13-cadence segments 
+of the light curve (the validation set). A potential issue with this method is that 
+the noise properties of $K2$ light curves are far from constant over the course of
+an observing campaign; optimizing the regression based on the median (or mean) validation 
+scatter can still, in principle, lead to overfitting in some segments. While splitting the
+light curves into segments with similar noise properties (\S\ref{sec:impl_breakpoints})
+helps with this, we also modify the cross-validation process to prevent localized
+overfitting. For each PLD order $n$ and for each value of $\lambda_n$, 
+we split each light curve segment 
+into three roughly equal sections. For each pair of sections, we train the model on
+them and compute the model prediction in the third section (the validation set). We
+then compute the scatter $\sigma_v$ as the MAD of the
+de-trended validation set after removing the GP prediction.
+
 We now have three $\sigma_v(\lambda_n)$ curves, one for each section. In general, the
 minima of these curves will occur at different values of $\lambda_n$, so determining
 the optimum value $\hat{\lambda}_n$ requires a compromise between overfitting and
@@ -581,10 +667,36 @@ we show $\sigma_v(\lambda_1)$ for each of the three light curve sections for
 EPIC 206103150. The red arrows indicate the minimum of each of the curves, and the
 dashed vertical line indicates the adopted $\hat{\lambda}_n$ based on a compromise
 between slight underfitting in the first two segments and slight overfitting in the
-third.
+third. This results in a more conservative cross-validation process than in Paper I.
 
 \section{Results}
 \label{sec:results}
+
+\subsection{Injection Tests}
+\label{sec:inj}
+
+\begin{figure}[ht]
+  \begin{center}
+      \includegraphics[width=0.47\textwidth]{figures/injections.pdf}
+       \caption{Transit injection/recovery statistics based on 2,700 randomly selected stars from campaign 6.
+       Each panel shows histograms of the number of transits recovered with a certain depth 
+       ratio $D/D_0$ (recovered depth divided by true depth). Blue histograms correspond to the actual
+       injection and recovery process, in which transits are injected into the raw light curves at the pixel level
+       and recovered after de-trending with \texttt{EVEREST}; red histograms correspond to control runs in which the transits
+       were injected into the \emph{de-trended} data. The values 
+       to the left and right of each histogram are the median $D/D_0$ for our pipeline and for the 
+       control run, respectively. The smaller values at the top indicate the fraction of transits recovered 
+       with depths lower and higher than the bounds of the plots. Finally, the two columns distinguish between 
+       runs in which the transits were explicitly masked prior to de-trending (left) and runs in which they were not (right), 
+       while the three rows correspond to different injected depths: $10^{−2}$, $10^{−3}$, and $10^{−4}$. \texttt{EVEREST} 
+       preserves transit depths if the transits are properly masked; otherwise, a ${\sim}10\%$ bias toward smaller depths is 
+       introduced for transits with low signal-to-noise.}
+     \label{fig:injections}
+  \end{center}
+\end{figure}
+
+As in Paper I, we perform simple transit injection/recovery tests to ensure
+our model is not overfitting.
 
 \subsection{Ridge Regression}
 \begin{figure}[ht]
@@ -610,6 +722,11 @@ third.
      \label{fig:nPLD}
   \end{center}
 \end{figure}
+
+\section{Limitations}
+\label{sec:limitations}
+How do we do on variable stars? Talk about 201270464.
+
 
 \section{Comparison to Other Pipelines}
 \label{sec:comparison}
@@ -711,29 +828,6 @@ third.
         \texttt{EVEREST} light curves have ${\sim}200-300$ more non-outlier data points than \texttt{K2SFF} 
         and ${\sim}100$ more than \texttt{K2SC}.}
      \label{fig:outliers}
-  \end{center}
-\end{figure}
-
-\section{Injection Tests}
-\label{sec:inj}
-
-\begin{figure}[ht]
-  \begin{center}
-      \includegraphics[width=0.47\textwidth]{figures/injections.pdf}
-       \caption{Transit injection/recovery statistics based on 2,700 randomly selected stars from campaign 6.
-       Each panel shows histograms of the number of transits recovered with a certain depth 
-       ratio $D/D_0$ (recovered depth divided by true depth). Blue histograms correspond to the actual
-       injection and recovery process, in which transits are injected into the raw light curves at the pixel level
-       and recovered after de-trending with \texttt{EVEREST}; red histograms correspond to control runs in which the transits
-       were injected into the \emph{de-trended} data. The values 
-       to the left and right of each histogram are the median $D/D_0$ for our pipeline and for the 
-       control run, respectively. The smaller values at the top indicate the fraction of transits recovered 
-       with depths lower and higher than the bounds of the plots. Finally, the two columns distinguish between 
-       runs in which the transits were explicitly masked prior to de-trending (left) and runs in which they were not (right), 
-       while the three rows correspond to different injected depths: $10^{−2}$, $10^{−3}$, and $10^{−4}$. \texttt{EVEREST} 
-       preserves transit depths if the transits are properly masked; otherwise, a ${\sim}10\%$ bias toward smaller depths is 
-       introduced for transits with low signal-to-noise.}
-     \label{fig:injections}
   \end{center}
 \end{figure}
 
