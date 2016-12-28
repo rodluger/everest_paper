@@ -74,7 +74,7 @@ $\mathbf{w}$ is known, the de-trended light curve is simply
 In Paper I, we obtained $\mathbf{w}$ by maximizing the likelihood function
 %
 \begin{align}
-\label{eq:like}
+\label{eq:like0}
 \log\mathcal{L}_0 =  &-\frac{1}{2} \left(\mathbf{y} - \mathbf{X} \cdot \mathbf{w}\right)^\top
                      \cdot
                      \mathbf{K^{-1}}
@@ -192,7 +192,7 @@ where $\mathbf{X_n}$ is the matrix of $n^\mathrm{th}$ order regressors, we may
 express the regularization matrix as
 %
 \begin{align}
-\label{eq:Lambda}
+\label{eq:Lambda_block}
 \mathbf{\Lambda} = 
 \left(
 \begin{array}{ccc}
@@ -209,7 +209,7 @@ of the prior on the $n^\mathrm{th}$ order regressors.
 
 A typical $K2$ star with 30 aperture pixels has $N_{reg} \sim\ $5,000 regressors and
 $N_{dat} \sim\ $500 data points in each cross-validation light curve segment 
-(see \S\ref{sec:implementation}). Evaluating the matrix inverse in Equation~(\ref{eq:model_slow})
+(see \S\ref{sec:impl_crossval}). Evaluating the matrix inverse in Equation~(\ref{eq:model_slow})
 is thus computationally expensive, and becomes prohibitive during cross-validation,
 since this must be done for every set of $\lambda_{n}$'s. Fortunately, we can reduce 
 the number of calculations with some linear algebra. First, we apply the Woodbury matrix 
@@ -335,17 +335,42 @@ discuss the implementation of \texttt{nPLD} in \S\ref{sec:implementation}.
 \section{Implementation}
 \label{sec:implementation}
 
-\subsection{Outlier clipping}
-\label{sec:impl_outliers}
-We perform iterative sigma clipping.
+\subsection{Light curves}
+\label{sec:impl_lightcurves}
+As in Paper I, we downloaded all stars in the $K2$ EPIC catalog and adopted aperture \#15
+from the \texttt{K2SFF} catalog \citep{Vanderburg14,VanderburgJohnson14}. We masked all
+cadences with \texttt{QUALITY} flags 1-9, 11-14, and 16-17, though we still compute the
+model prediction on them. For campaigns 0-2, we remove the background signal as 
+described in Paper I; for more recent campaigns, the background is removed by the \emph{Kepler}
+team.
+
+Next, we perform iterative sigma clipping to identify and mask outliers at 5$\sigma$.
+During each iteration, we compute the linear, unregularized PLD model and smooth it with
+a Savitsky-Golay filter \citep{SavitskyGolay64}, then identify outliers based on a 
+median absolute deviation (MAD) cut. We implement this outlier-clipping step at the
+beginning of each cross-validation step (\S\ref{sec:impl_crossval}), each time computing
+the model with a higher PLD order, to progressively refine the outlier mask.
 
 \subsection{GP Optimization}
 \label{sec:impl_gp}
-We optimize the GP. To prevent too much power in PLD, we initialize GP at large amplitude.
+We 
 
 \subsection{Breakpoints}
 \label{sec:impl_breakpoints}
-We split the light curves up.
+Because the instrumental noise properties are quite variable over the course of $K2$ 
+campaigns, we find a significant improvement in the de-trending power of our ridge
+regression model when we subdivide light curves into two or three segments. This is in contrast to
+the PCA approach in Paper I, where we did not find it necessary to split the timeseries.
+For all campaigns except 4 and 7, we add a single breakpoint in the light curve near the
+mid-campaign point, where the spacecraft roll is at a minimum. For campaigns 4 and 7,
+we find it necessary to insert two breakpoints. We cross-validate and de-trend each 
+light curve segment separately and mend them at the end. In order to mitigate flux
+discontinuities at the breakpoints, we train the model in each segment on an additional
+100 cadences past the breakpoint to remove potential edge effects and offset the models
+in each segment so that they align at the breakpoint.
+While this method removes flux discontinuities, it can introduce discontinuities in the
+derivative of the flux, showing up as spurious ``kinks'' in the light curve. We 
+remove these in a post-processing step (\S\ref{sec:cbvs}).
 
 \subsection{\texttt{nPLD}}
 \label{sec:impl_neighboring}
@@ -362,8 +387,8 @@ each $K2$ target with the aid of the PLD vectors of ten randomly selected bright
 ($11 \leq \Kp \leq 13$) stars on the same detector module as the target. To minimize
 contamination of the target by outliers in its neighbors' fluxes, we linearly
 interpolate over all neighbor data with flagged \texttt{QUALITY} bits. Finally, for
-computational reasons, we neglect all cross terms of the form $\prod_{i \neq j} p_i p_j$ 
-and $\prod_{i \neq j | i \neq k} p_i p_j p_k$, where $p_i$ is the flux in the $i^{th}$ pixel,
+computational reasons, we neglect all cross terms of the form $\prod_{i \neq j} p_i p_j$,
+where $p_i$ is the flux in the $i^{th}$ pixel,
 when computing the neighbors' PLD vectors. Cross terms typically encode information
 specific to the sets of pixels from which they are computed and aid in correcting
 features such as thruster firing discontinuities \citep{Luger16}. Cross terms from
@@ -381,7 +406,7 @@ the target star's de-trended light curve, resulting in potential false positive 
 detections down the line. The two cases relevant to $K2$ in which PLD could fail in such
 a way are for saturated stars and stars with bright contaminant sources in their
 apertures \citep{Luger16}. As we show in \S\ref{sec:impl_saturated} below, it is 
-straightforward to adapt PLD to work reliably saturated stars. But while 
+straightforward to adapt PLD to work reliably for saturated stars. But while 
 \texttt{EVEREST 2.0} is more robust against overfitting of crowded stars 
 (\S\ref{sec:crowding}), highly crowded apertures remain an issue for PLD. When de-trending
 with \texttt{nPLD}, we therefore select neighboring stars with no other known sources
@@ -390,8 +415,40 @@ vectors.
 
 \subsection{Saturated stars}
 \label{sec:impl_saturated}
+As discussed in Paper I, PLD typically fails for stars with saturated pixels, resulting
+in overfitted light curves with artificially low CDPP and suppressed astrophysical 
+information (such as transits with significantly shallower depths). This happens because
+saturated pixels contain nearly no astrophysical information, as the signal
+overflows into adjacent pixels in the same column and is ultimately dumped into the
+pixels at the top and bottom of the bleed trails; these tail pixels ultimately contain more 
+astrophysical information than the other pixels in the aperture. Since PLD implicitly
+assumes that astrophysical information is constant across the aperture, the method
+breaks down for these stars, and PLD vectors from pixels in the saturated columns become capable
+of fitting out the astrophysical information in the rest of the aperture.
 
-Discuss saturated PLD.
+We suggested in Paper I that collapsing saturated columns into single pixels --- by co-adding
+the fluxes in each of the pixels and treating the resulting timeseries as a single PLD pixel ---
+could negate the effect of saturation, since charge is conserved along the bleed trail. While
+this ensures PLD does not overfit, it leads to the loss of some of the information about the 
+vertical motion of the stellar PSF across the detector. This leads to significantly poorer
+de-trending, and therefore we did not employ this method in the first version of the pipeline.
+However, we find that including the PLD vectors of neighboring stars in the design matrix 
+(i.e., \texttt{nPLD}) effectively restores the information lost when saturated columns are 
+collapsed, leading to high quality de-trended light curves of saturated stars. 
+
+In practice, we collapse all columns containing one or more pixels whose flux 
+comes within 10\% of (or exceeds)
+the pixel well depth for the corresponding detector channel during more than 2.5\% of the
+timeseries. We obtained the well depths from
+Table 13 of the Kepler Instrument Handbook.
+\footnote{\url{archive.stsci.edu/kepler/manuals/KSCI-19033-001.pdf}} 
+
+As an example, in Figure~\ref{fig:saturated_star} we plot the light curve of EPIC 202063160, a saturated
+campaign 0 eclipsing binary. The raw light curve is shown at the top and the light curve
+de-trended with \texttt{EVEREST 1.0} is shown at the center. Because three of the columns
+in the aperture contain saturated pixels (right panel), \texttt{EVEREST 1.0} almost 
+completely fits out the eclipses. With column-collapsed \texttt{nPLD} (bottom), the
+eclipse is preserved and the instrumental signal is effectively removed.
 
 \begin{figure}[ht]
   \begin{center}
@@ -402,34 +459,31 @@ Discuss saturated PLD.
        (bottom). The pixel image is shown at the right on a linear scale, with the adopted aperture
        contour indicated in red. The three columns highlighted in red contain saturated
        pixels. Despite a great improvement in the CDPP, \texttt{EVEREST 1.0} leads to severe
-       overfitting, causing the eclipses to all but disappear. This is due to the fact that
-       saturated pixels contain nearly no astrophysical information, as the signal
-       overflows into the pixels at the top and bottom of the saturated columns; this 
-       invalidates the basic assumption of PLD that all pixels contain the same amount
-       of astrophysical information. To correct for this, we collapse each saturated
-       column into a single pixel. Since the flux is approximately conserved along the bleed
-       trail, this method ensures that astrophysical information is constant across the aperture.
-       While this leads to the loss of some of the instrumental components used by PLD,
-       in practice we find that the unsaturated pixels still contain enough
-       information to properly de-trend the target.}
+       overfitting, causing the eclipses to all but disappear. By collapsing saturated columns,
+       \texttt{EVEREST 2.0} correctly de-trends saturated stars without overfitting.}
      \label{fig:saturated_star}
   \end{center}
 \end{figure}
 
+\subsection{Short cadence}
+\label{sec:impl_shortcad}
+We de-trend short cadence targets.
+
 \subsection{Cross-validation}
 \label{sec:impl_crossval}
-Solving for the optimal set of regularization parameters 
-$\{ \lambda_1, \lambda_2, \lambda_3 \}$
-requires a costly minimization of the three-dimensional function 
-$\sigma_\mathrm{v}(\lambda_1, \lambda_2, \lambda_3)$, where
-$\sigma_\mathrm{v}$ is the scatter in the validation set.
-%
-In the interest of computational speed, we perform a simplification. Since we
+The principal step in the de-trending process is determining the prior amplitudes $\lambda_n$ in
+Equation~(\ref{eq:model}), which we do by cross-validation. Our method is analogous to
+that of Paper I, where we performed cross-validation to obtain the optimal number of principal
+components to regress on. However, here we seek to optimize a three-dimensional function
+$\sigma_\mathrm{v}(\lambda_1, \lambda_2, \lambda_3)$, where $\sigma_\mathrm{v}$ is the scatter 
+in the validation set; this is a far more expensive calculation to do.
+While we could employ a nonlinear optimization
+algorithm (see below), in the interest of computational speed, we perform a simplification. Since we
 expect the first order PLD regressors to contain most of the de-trending information,
 with each successive PLD order providing a small correction term to the fit, we break
 down the minimization problem into three separate one-dimensional problems.
 First, we perform cross-validation on the first order PLD model by setting $\lambda_2 = \lambda_3 = 0$
-to obtain $\hat{\lambda}_1$. We then perform cross-validation on the second order model
+to obtain the optimal value of $\lambda_1$, $\hat{\lambda}_1$. We then perform cross-validation on the second order model
 by fixing $\lambda_1$ at this estimate and keeping $\lambda_3 = 0$. Finally, we solve
 for $\hat{\lambda}_3$ by fixing the first and second order parameters at their optimum
 values:
@@ -439,32 +493,95 @@ values:
 \hat{\lambda}_2 &= \argmin \sigma_\mathrm{v}(\lambda_2)\bigg|_{\lambda_1 = \hat{\lambda}_1,\ \lambda_3 = 0} \nonumber\\
 \hat{\lambda}_3 &= \argmin \sigma_\mathrm{v}(\lambda_3)\bigg|_{\lambda_1 = \hat{\lambda}_1,\ \lambda_2 = \hat{\lambda}_2}
 \end{align}
-%
-%This reduces the number of steps in the grid search to $37\times 3 = 111$, which is much
-%more computationally tractable. 
+% 
 It is important to note that there is no \emph{a priori} reason
 that this method should yield the global minimum of $\sigma_\mathrm{v}$; in fact, it very
-likely does not. However, since we allow for $\lambda_n = 0$ in our grid search, this approximation
-cannot lead to overfitting, as it will always prefer a lower-order PLD model to one
-with higher scatter in the validation set. While it may lead to \emph{under}fitting,
-in practice we find that it works surprisingly well,
-surpassing the de-trending power of the \texttt{EVEREST} model in Paper I (see \S\ref{?}).
+likely does not. However, we explicitly allow for $\lambda_n = 0$ in our grid search, and thus 
+this approximation cannot lead to overfitting, as it will always prefer a lower-order PLD model to one
+with higher scatter in the validation set. 
 
 \begin{figure}[ht]
   \begin{center}
       \includegraphics[width=0.47\textwidth]{figures/pPLD.pdf}
-       \caption{pPLD.}
+       \caption{6-hr CDPP comparison between de-trending with \texttt{pPLD} and
+                de-trending with \texttt{nPLD} for a sample of 2,700 randomly selected campaign 6
+                stars. Plotted is the star-by-star difference in the CDPP values for each method,
+                normalized to the \texttt{nPLD} CDPP (blue dots); stars with negative values have lower CDPP 
+                when de-trended with \texttt{pPLD}. The black line is the median CDPP difference
+                in 0.5 magnitude-wide bins. \texttt{pPLD} leads to an average improvement
+                in the CDPP of ${\lesssim}1\%$.}
      \label{fig:pPLD}
   \end{center}
 \end{figure}
 
+As a proof of concept, we de-trended a sample of 2,700 randomly selected campaign 6 targets
+using this approximation (henceforth the ``\texttt{nPLD} solution'') in the cross-validation step. 
+We then repeated the de-trending by
+solving for the $\hat{\lambda}_n$ using Powell's method, initializing the solver at different
+points in the vicinity of the \texttt{nPLD} solution and keeping the solution with the lowest
+average CDPP for each target; we dub this method \texttt{pPLD}. In Figure~\ref{fig:pPLD} we plot
+the star-by-star CDPP difference between the two models, 
+$\mathrm{(CDPP_{pPLD} - CDPP_{nPLD})/CDPP_{nPLD}}$. While for some stars the CDPP improves
+substantially with \texttt{pPLD}, cross-validating with Powell's method 
+leads to a less than one percent improvement in the CDPP on average. Given that this method
+is more computationally expensive, we adopt the grid search method outlined above when
+producing the \texttt{EVEREST 2.0} catalog.
+
+In addition to being more computationally tractable, there are two major benefits to
+minimizing $\sigma_v$ in this fashion. First, since we perform cross-validation three times
+(once for each PLD order), we are able to progressively refine the outlier masks (\S\ref{sec:impl_lightcurves}) and
+the GP hyperparameters (\S\ref{sec:impl_gp}) for each target in between cross-validation steps. Second, it
+allows for some leeway in how we determine the minimum validation scatter. In Paper I, 
+we sought to minimize the \emph{median} scatter in groups of random 13-cadence segments 
+of the light curve (the validation set). A potential issue with this method is that 
+the noise properties of $K2$ light curves are far from constant over the course of
+an observing campaign; optimizing the regression based on the median (or mean) validation 
+scatter can still, in principle, lead to overfitting in some segments. While splitting the
+light curves into segments with similar noise properties (\S\ref{sec:impl_breakpoints})
+helps with this, we also modify the cross-validation process to prevent localized
+overfitting. For each PLD order $n$ and for each value of $\lambda_n$, 
+we split each light curve segment 
+into three roughly equal sections. For each pair of sections, we train the model on
+them and compute the model prediction in the third section (the validation set). We
+then compute the scatter $\sigma_v$ as the MAD of the
+de-trended validation set after removing the GP prediction.
+
 \begin{figure}[ht]
   \begin{center}
       \includegraphics[width=0.3\textwidth]{figures/crossval.pdf}
-       \caption{Crossval.}
+       \caption{Cross-validation procedure for first order PLD on EPIC 206103150,
+       (WASP-47 e) a campaign 3 planet host. Shown is the scatter $\sigma_v$ in the validation
+       set (red) and the scatter in the training set (blue) as a function of $\lambda_1$,
+       the prior amplitude for the first order PLD weights, for each of three light curve
+       sections; the mean scatter is shown at the bottom. Red arrows indicate the minima
+       in the $\sigma_v$ curves for each section; note that because of variable noise
+       properties across the campaign, they all occur at different values of $\lambda_1$.
+       The dashed vertical line indicates the value of $\hat{\lambda}_n$ obtained by the
+       procedure outlined in the text, which establishes a compromise between 
+       slight underfitting in the first two segments and slight overfitting in the
+       third.
+       }
      \label{fig:crossval}
   \end{center}
 \end{figure}
+
+We now have three $\sigma_v(\lambda_n)$ curves, one for each section. In general, the
+minima of these curves will occur at different values of $\lambda_n$, so determining
+the optimum value $\hat{\lambda}_n$ requires a compromise between overfitting and
+underfitting in the different segments. For each segment, we compute the minimum scatter, 
+find the set of all $\lambda_n$
+for which $\sigma_v(\lambda_n)$ is within 5\% of the minimum, and keep the largest
+$\lambda_n$. We then pick $\hat{\lambda}_n$ to be the \emph{smallest} of these
+values, provided it is smaller than the largest value of $\lambda_n$ at the minima
+of the three $\sigma_v$ curves. This process ensures that $\hat{\lambda}_n$ falls
+between the minima of the $\sigma_v$ curves with the smallest and largest value of
+$\lambda_n$, and that it leads to no more than 5\% overfitting in
+one of the chunks. We illustrate this procedure in Figure~\ref{fig:crossval}, where
+we show $\sigma_v(\lambda_1)$ for each of the three light curve sections for
+EPIC 206103150. The red arrows indicate the minimum of each of the curves, and the
+dashed vertical line indicates the adopted $\hat{\lambda}_n$ based on a compromise
+between slight underfitting in the first two segments and slight overfitting in the
+third.
 
 \section{Results}
 \label{sec:results}
@@ -475,10 +592,7 @@ surpassing the de-trending power of the \texttt{EVEREST} model in Paper I (see \
       \includegraphics[width=0.47\textwidth]{figures/ridge_reg.pdf}
        \caption{6-hr CDPP comparison between de-trending with ridge (L2) regression (this paper) and
                 de-trending with PCA (Paper I) for a sample of 2,700 randomly selected campaign 6
-                stars. Plotted is the star-by-star difference in the CDPP values for each pipeline,
-                normalized to the PCA CDPP (blue dots); stars with negative values have lower CDPP 
-                when de-trended with ridge regression. The black line is the median CDPP difference
-                in 0.5 magnitude-wide bins. Ridge regression leads to a small CDPP improvement of 
+                stars, as in Figure~\ref{fig:pPLD}. Ridge regression leads to a small CDPP improvement of 
                 ${\sim}1$ to 5\%.}
      \label{fig:ridge_reg}
   \end{center}

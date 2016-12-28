@@ -174,7 +174,7 @@ for axis in ax:
 labels = ['%.1f' % x for x in xticks]
 labels[0] = r'$-\infty$'
 ax[-1].set_xticklabels(labels) 
-ax[-1].set_xlabel(r'Log $\Lambda$', fontsize = 16, labelpad = 15)
+ax[-1].set_xlabel(r'Log $\lambda_1$', fontsize = 16, labelpad = 15)
 
 # Sizes
 for axis in ax:
