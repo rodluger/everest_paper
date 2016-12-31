@@ -15,7 +15,7 @@ from matplotlib.lines import Line2D
 import numpy as np
 
 campaign = 6.0
-model = 'sPLD'
+model = 'rPLD'
 
 # Get statistics
 outfile = os.path.join(EVEREST_SRC, 'missions', 'k2', 'tables', 'c%02d_%s.cdpp' % (int(campaign), model))
@@ -62,7 +62,7 @@ for ax in axes:
   ax.plot(bins, by, 'k-', lw = 2)
   ax.set_xlabel('Kepler Magnitude', fontsize = 18)
   ax.set_rasterization_zorder(0)
-axes[0].set_ylabel(r'$\frac{\mathrm{CDPP}_{\mathrm{L2}} - \mathrm{CDPP}_{\mathrm{EVEREST1}}}{\mathrm{CDPP}_{\mathrm{EVEREST1}}}$', fontsize = 22)
+axes[0].set_ylabel(r'$\frac{\mathrm{CDPP}_{\mathrm{rPLD}} - \mathrm{CDPP}_{\mathrm{EVEREST1}}}{\mathrm{CDPP}_{\mathrm{EVEREST1}}}$', fontsize = 22)
 axes[0].set_ylim(-1,1)
 axes[1].set_ylim(-0.3,0.3)
 

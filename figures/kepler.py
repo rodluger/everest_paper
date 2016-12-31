@@ -26,6 +26,10 @@ axes[3].set_ylabel(r'CDPP (ppm)', fontsize = 26, labelpad = 20)
 kic, kepler_kp, kepler_cdpp6 = np.loadtxt(os.path.join(EVEREST_SRC, 'missions', 'k2', 
                                          'tables', 'kepler.cdpp'), unpack = True) 
 
+# Cumulative lists
+kp_all = []
+cdpp6_all = []
+
 # Loop over all campaigns
 for campaign, ax in enumerate(axes):
   
@@ -42,7 +46,11 @@ for campaign, ax in enumerate(axes):
   # so let's add a little noise to spread them out for nicer plotting
   if campaign == 0:
     kp = kp + 0.1 * (0.5 - np.random.random(len(kp)))
-      
+  
+  # Append to running lists
+  kp_all.extend(list(kp))
+  cdpp6_all.extend(list(cdpp6))
+  
   bins = np.arange(7.5,18.5,0.5) 
   ax.scatter(kepler_kp, kepler_cdpp6, color = 'y', marker = '.', alpha = 0.03, zorder = -1)
   ax.scatter(kp, cdpp6, color = 'b', marker = '.', alpha = alpha, zorder = -1)
@@ -62,4 +70,31 @@ axes[0].scatter([-10,-10],[-10,-10],color='y',label='Kepler')
 axes[0].scatter([-10,-10],[-10,-10],color='b',label='Everest')
 axes[0].legend(loc = 'upper left', fontsize = 14)  
 fig.savefig('cdpp_kepler.pdf', bbox_inches = 'tight')
+pl.close()
+
+# Now plot the cumulative one
+kp_all = np.array(kp_all)
+cdpp6_all = np.array(cdpp6_all)
+fig, ax = pl.subplots(1, 1, figsize = (7, 5))
+ax.set_xlabel('Kepler Magnitude', fontsize = 28, labelpad = 20)
+ax.set_ylabel(r'CDPP (ppm)', fontsize = 28, labelpad = 20)
+bins = np.arange(7.5,18.5,0.5) 
+ax.scatter(kepler_kp, kepler_cdpp6, color = 'y', marker = '.', alpha = 0.03, zorder = -1)
+ax.scatter(kp_all, cdpp6_all, color = 'b', marker = '.', alpha = 0.01, zorder = -1)
+for x, y, color in zip([kepler_kp, kp_all], [kepler_cdpp6, cdpp6_all], ['#ffff66', '#6666ff']):
+  by = np.zeros_like(bins) * np.nan
+  for b, bin in enumerate(bins):
+    i = np.where((y > -np.inf) & (y < np.inf) & (x >= bin - 0.5) & (x < bin + 0.5))[0]
+    if len(i) > 10:
+      by[b] = np.median(y[i])
+  ax.plot(bins, by, 'o', color = color)
+ax.set_ylim(-10, 500)
+ax.set_xlim(8, 18)
+ax.set_rasterization_zorder(0)
+ax.scatter([-10,-10],[-10,-10],color='y',label='Kepler')
+ax.scatter([-10,-10],[-10,-10],color='b',label='Everest')
+ax.legend(loc = 'upper left', fontsize = 16) 
+for tick in ax.get_xticklabels() + ax.get_yticklabels():
+  tick.set_fontsize(16) 
+fig.savefig('cdpp_kepler_all.pdf', bbox_inches = 'tight')
 pl.close()
