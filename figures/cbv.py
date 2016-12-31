@@ -6,57 +6,53 @@ cbv.py
 
 '''
 
-from everest.missions.k2.sysrem import GetCBVs, GetChunk
-from everest.config import EVEREST_DAT
 import os
 import matplotlib.pyplot as pl
 import numpy as np
 
-# Let's do C02 as an example
-campaign = 2
-clobber = False
+def GetChunk(time, breakpoints, b, mask = []):
+  '''
+  Returns the indices corresponding to a given light curve chunk.
+  
+  :param int b: The index of the chunk to return
 
-# We're going to plot the CBVs on the CCD
-fig = [None, None, None]
-ax = [None, None, None]
-for n in range(1, 3):
-  fig[n], ax[n] = pl.subplots(5, 5, figsize = (9, 9))
-  fig[n].subplots_adjust(wspace = 0.025, hspace = 0.025)
-  ax[n] = [None] + list(ax[n].flatten())
-  for axis in [ax[n][1], ax[n][5], ax[n][21], ax[n][25]]:
-    axis.set_visible(False)
-  for i in range(1, 25):
-    ax[n][i].set_xticks([])
-    ax[n][i].set_yticks([])
-    ax[n][i].annotate('%02d' % i, (0.5, 0.5), 
-                      va = 'center', ha = 'center',
-                      xycoords = 'axes fraction',
-                      color = 'k', fontsize = 60, alpha = 0.05)
-    ax[n][i].margins(0.1, 0.1)
+  '''
+
+  M = np.delete(np.arange(len(time)), mask, axis = 0)
+  if b > 0:
+    res = M[(M > breakpoints[b - 1]) & (M <= breakpoints[b])]
+  else:
+    res = M[M <= breakpoints[b]]
+  return res
+
+# Set up the plot
+fig, ax = pl.subplots(3, 3, figsize = (13, 10))
+ax = ax.flatten()
+
+# Loop over all campaigns
+for campaign in range(9):
   
-# Get the CBVs
-for module in range(2, 25):
-  X = GetCBVs(campaign, module = module, model = 'nPLD', clobber = clobber)
-  if X is not None:
+  # Get the data
+  t, x1, x2 = np.loadtxt(os.path.join('cbv', '%02d.tsv' % campaign), unpack = True)
+  with open(os.path.join('cbv', '%02d.tsv' % campaign)) as f:
+    breakpoints = [int(b) for b in f.readline().replace("#", '').split(',')]
   
-    # Get the timeseries info
-    infofile = os.path.join(EVEREST_DAT, 'k2', 'cbv', 'c%02d' % campaign, str(module), 'nPLD', 'info.npz')
-    info = np.load(infofile)
-    time = info['time']
-    nstars = info['nstars']
-    breakpoints = info['breakpoints']
-    
-    # Plot the CBVs
-    for b, color in zip(range(len(breakpoints)), ['b', 'r']):
-      inds = GetChunk(time, breakpoints, b)
-      for n in range(1, 3):
-        if n == 2 and module == 20:
-          alpha = 0.25
-        else:
-          alpha = 1.0
-        ax[n][module].plot(time[inds], X[inds,n], color = color, lw = 2, alpha = alpha)
-          
-# Save the figures
-for n in range(1, 3):
-  fig[n].savefig('cbv%d.pdf' % n, bbox_inches = 'tight')
-  pl.close(fig[n])
+  if campaign == 0:
+    bad = np.arange(664, 1912)
+    x1[bad] = np.nan
+    x2[bad] = np.nan
+  
+  # Plot the first two CBVs in each chunk of this quarter
+  offset = 0
+  for b in range(len(breakpoints)):
+    i = GetChunk(t, breakpoints, b)
+    ax[campaign].plot(t[i] + offset, (x2[i] - np.nanmin(x2[i])) / (np.nanmax(x2[i]) - np.nanmin(x2[i])), color = 'r', alpha = 0.5)
+    ax[campaign].plot(t[i] + offset, (x1[i] - np.nanmin(x1[i])) / (np.nanmax(x1[i]) - np.nanmin(x1[i])), color = 'b')
+    offset += 5
+  
+  # Appearance
+  ax[campaign].margins(0.1, 0.1)
+  ax[campaign].set_xticks([])
+  ax[campaign].set_yticks([])
+  
+pl.show()
