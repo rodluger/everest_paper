@@ -1100,9 +1100,8 @@ ${\sim}500$ cadences, and we minimized the validation scatter after the subtract
 a properly optimized GP model. This helps to ensure that we minimize \emph{only} the instrumental
 component of the noise. In order to assess the performance of this new scheme, we
 visually inspected the de-trended light curves of 100 RR Lyrae stars in campaigns 0--4,
-chosen as the targets with the highest probability of being RR Lyrae AB stars
+chosen as the targets with the highest probability of being RRab stars
 according to the \texttt{K2VARCAT} catalog \citep{Armstrong16}.
-\footnote{\url{https://archive.stsci.edu/prepds/k2varcat/}}
 Among the \texttt{EVEREST 1.0} light curves, 92/100 had visibly damped
 oscillation amplitudes or clearly overfitted stellar variability features. In contrast,
 44/100 \texttt{EVEREST 2.0} RR Lyrae stars showed signs of overfitting. For 8
@@ -1111,9 +1110,16 @@ models. While there are still issues with how the pipeline handles extremely var
 stars, the improvement over version \texttt{1.0} is substantial. {\color{red} How
 does \texttt{K2SFF} do?}
 
+K2SFF: 96/100 bad
+K2SC: 12/65 bad (35 don't exist)
+
 \subsection{Crowded apertures}
 \label{sec:crowded}
 Crowded apertures.
+
+\subsection{Aperture losses}
+\label{sec:losses}
+Aperture losses. EPIC 210703831. Saturated stars k2sff_19, plus 2 pix top and bottom
 
 \section{Conclusions}
 \label{sec:conclusions}
