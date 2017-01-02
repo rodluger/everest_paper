@@ -39,8 +39,8 @@
 \begin{document}
 
 \title{An update to the EVEREST K2 pipeline:\\ Short cadence, saturated stars, and Kepler-like photometry down to $\Kp = 15$}
-\author{Rodrigo Luger\altaffilmark{1,2}, Ethan Kruse\altaffilmark{1}, Eric Agol\altaffilmark{1,2},\\
-Daniel Foreman-Mackey\altaffilmark{1,3}, Nicholas Saunders\altaffilmark{1}, Rory Barnes\altaffilmark{1,2}}
+\author{Rodrigo Luger\altaffilmark{1,2}, Ethan Kruse\altaffilmark{1}, Daniel Foreman-Mackey\altaffilmark{1,3},\\
+Eric Agol\altaffilmark{1,2}, Nicholas Saunders\altaffilmark{1}, Rory Barnes\altaffilmark{1,2}}
 \altaffiltext{1}{Astronomy Department, University of Washington, Box 351580, Seattle, WA 98195, USA; \href{mailto:rodluger@uw.edu}{rodluger@uw.edu}}
 \altaffiltext{2}{Virtual Planetary Laboratory, Seattle, WA 98195, USA}
 \altaffiltext{3}{Sagan Fellow}
@@ -61,11 +61,12 @@ All light curves for campaigns 0--8 are available online in the \texttt{EVEREST}
 will be continuously updated with future campaigns.
 \texttt{EVEREST 2.0} is open source and was coded in a general framework that can be applied
 to other photometric surveys, including \emph{Kepler} and the upcoming \emph{TESS} mission.
+\vspace*{0.7in}
 \end{abstract}
 
 \section{Introduction}
 \label{sec:intro}
-The failure of the second of its four reaction wheels in 2013 brought the original
+The failure of the second of four reaction wheels in 2013 brought the original
 \emph{Kepler} mission to a premature conclusion, as the spacecraft could no longer
 achieve the fine pointing precision required for the groundbreaking
 transiting exoplanet and stellar variability science that the first four years of the
@@ -87,11 +88,12 @@ that distort astrophysical information in ways that these methods cannot fully
 correct for, particularly when these variations are different across different
 pixels or in different locations on the detector.
 
-With this in mind, in \cite{Luger16} (henceforth Paper I), we developed the first version of our 
-pipeline, \texttt{EVEREST 1.0}, which regresses exclusively on \emph{local} information.
+In \cite{Luger16} (henceforth Paper I), we developed the first version of our 
+pipeline, \texttt{EVEREST} (EPIC Variability Extraction and Removal for Exoplanet
+Science Targets), which regresses exclusively on \emph{local} information.
 We employed a variant of pixel level decorrelation (PLD) based on the method of \cite{Deming15},
 a data-driven approach that uses a star's own pixel-level light curve to remove
-instrumental effects. We showed that \texttt{EVEREST 1.0} recovered the original \emph{Kepler} 
+instrumental effects. We showed that \texttt{EVEREST} recovered the original \emph{Kepler} 
 precision for stars brighter than $Kepler$-band magnitude $\Kp \approx 13$, yielding higher 
 average precision than any publicly available $K2$ catalog for unsaturated stars.
 
@@ -1071,8 +1073,47 @@ Here are some sample light curves.
 
 \section{General Remarks}
 \label{sec:remarks}
-How do we do on variable stars? Talk about 201270464.
-How do we do on crowded fields?
+
+\subsection{Variable stars}
+\label{sec:variables}
+In Paper I we discussed how \texttt{EVEREST} often fails to properly de-trend
+extremely variable stars, such as RR Lyrae variables and very short period eclipsing
+binaries, causing overfitting in many of these light curves. We attributed this to 
+there being too much power in the GP model, which
+captured both the astrophysical and the instrumental variability, resulting in an
+improperly optimized PLD model. However, after considerable experimentation, we
+found that this behavior stemmed in large part from our cross-validation scheme.
+In Paper I, our cross-validation sets were 13 cadences (6.5 hours) long, and we sought to
+minimize the median (proxy) CDPP of all such sets. We chose this timescale
+because it is roughly the duration of a typical transit, and in practice
+it worked well to minimize overfitting of transits. However, the CDPP as defined in
+\S\ref{sec:results} --- the normalized standard deviation in 13 cadence segments
+after the application of a high-pass filter --- is not an adequate metric of the
+photometric precision for stars that are intrinsically variable on similarly short 
+timescales. In other words, RR Lyrae and other extreme variables are dominated by astrophysical
+variability on the timescale at which the CDPP is computed, and therefore 
+minimizing the CDPP is a recipe for overfitting.
+
+In \texttt{EVEREST 2.0}, we modified our cross-validation scheme (\S\ref{sec:impl_crossval})
+in two important ways: we increased the average size of the validation sets to
+${\sim}500$ cadences, and we minimized the validation scatter after the subtraction of
+a properly optimized GP model. This helps to ensure that we minimize \emph{only} the instrumental
+component of the noise. In order to assess the performance of this new scheme, we
+visually inspected the de-trended light curves of 100 RR Lyrae stars in campaigns 0--4,
+chosen as the targets with the highest probability of being RR Lyrae AB stars
+according to the \texttt{K2VARCAT} catalog \citep{Armstrong16}.
+\footnote{\url{https://archive.stsci.edu/prepds/k2varcat/}}
+Among the \texttt{EVEREST 1.0} light curves, 92/100 had visibly damped
+oscillation amplitudes or clearly overfitted stellar variability features. In contrast,
+44/100 \texttt{EVEREST 2.0} RR Lyrae stars showed signs of overfitting. For 8
+of these, the overfitting occurred only with the inclusion of the second or third order PLD
+models. While there are still issues with how the pipeline handles extremely variable
+stars, the improvement over version \texttt{1.0} is substantial. {\color{red} How
+does \texttt{K2SFF} do?}
+
+\subsection{Crowded apertures}
+\label{sec:crowded}
+Crowded apertures.
 
 \section{Conclusions}
 \label{sec:conclusions}
