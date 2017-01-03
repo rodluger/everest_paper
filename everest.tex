@@ -552,7 +552,11 @@ comes within 10\% of (or exceeds)
 the pixel well depth for the corresponding detector channel during more than 2.5\% of the
 timeseries. We obtained the well depths from
 Table 13 of the Kepler Instrument Handbook.
-\footnote{\url{archive.stsci.edu/kepler/manuals/KSCI-19033-001.pdf}} 
+\footnote{\url{archive.stsci.edu/kepler/manuals/KSCI-19033-001.pdf}} To avoid aperture
+losses, we found it necessary to use aperture \texttt{K2SFF} \#19 (the largest of the PSF-based
+apertures) for these stars. We further padded these apertures by two pixels at the top
+and bottom of saturated columns to ensure that none of the target flux bled out of the
+aperture; see \S\ref{sec:losses}.
 
 As an example, in Figure~\ref{fig:saturated_star} we plot the light curve of EPIC 202063160, a saturated
 campaign 0 eclipsing binary. The raw light curve is shown at the top and the light curve
@@ -949,6 +953,189 @@ The same is true when compared to \texttt{K2SFF} and \texttt{K2SC}, with the exc
 campaigns 0--2, for which \texttt{EVEREST 2.0} outperforms \texttt{K2SFF} by nearly 50\%
 (i.e., a factor of 2) at all magnitudes.
 
+\subsection{Outliers}
+
+\begin{figure}[hbt]
+  \begin{center}
+      \includegraphics[width=0.47\textwidth]{figures/outliers.pdf}
+       \caption{Histograms showing the number of non-outlier data points per campaign for each
+        of four pipelines: \texttt{K2SFF} (gray), \texttt{K2SC} (orange), \texttt{EVEREST 1.0}
+        (red), and \texttt{EVEREST 2.0} (blue). To compute these, we remove all cadences 
+        with flagged \texttt{QUALITY} bits (excepting thruster fires) from all light curves, then
+        smooth each light curve with a second order, 2-day Savitsky-Golay filter and perform iterative 
+        sigma clipping at 5$\sigma$ to remove the outliers. The number of remaining cadences is
+        for each light curve is then used to plot the histograms. Both versions of \texttt{EVEREST}
+        have more usable data points per campaign than the other pipelines. On average, 
+        \texttt{EVEREST} light curves have ${\sim}200-300$ more non-outlier data points than \texttt{K2SFF} 
+        and ${\sim}100$ more than \texttt{K2SC}.}
+     \label{fig:outliers}
+  \end{center}
+\end{figure}
+
+In addition to yielding lower average CDPP than any other publicly available pipeline,
+\texttt{EVEREST} yields the largest number of \emph{usable} data points for any of the
+$K2$ campaigns to date. These data points generally appear as outliers even in the
+raw data, since they are highly sensitive to inter- and intra-pixel sensitivity variations.
+Pipelines that regress on functions of the spacecraft motion alone therefore have trouble
+de-trending them, resulting in ${\sim}5-10\%$ of the data points being discarded as outliers.
+In contrast, since PLD uses regressors containing both inter- and intra-pixel sensitivity
+information, it naturally de-trends data collected during thruster firing events (see Paper I).
+
+To show this, we calculated the number of non-outlier data points per campaign
+for each of the four pipelines (\texttt{K2SFF}, \texttt{K2SC}, \texttt{EVEREST 1.0}, and
+\texttt{EVEREST 2.0}). After removing all data points with flagged \texttt{QUALITY}
+bits 1-9, 11-14, and 16-17, we smoothed each light curve with a Savitsky-Golay filter and
+performed iterative sigma clipping to remove all 5$\sigma$ outliers. In Figure~\ref{fig:outliers}
+we plot histograms of the number of remaining data points for all stars in each of the first
+nine campaigns. As expected, both \texttt{EVEREST 1.0} and \texttt{EVEREST 2.0} have, on 
+average, 100--300 more usable data points than the other two pipelines. This roughly
+corresponds to the number of thruster firings per campaign, as these happen every 6--12
+hours on average.
+
+\subsection{Short cadence}
+\label{sec:shortcad}
+
+\begin{figure}[hbt]
+  \begin{center}
+      \includegraphics[width=0.47\textwidth]{figures/short_cad_stats.pdf}
+       \caption{CDPP comparison between \texttt{EVEREST 2.0} light curves
+       observed in short cadence and long cadence modes. Short cadence
+       light curves have 5-10\% lower CDPP on average; for saturated stars,
+       short cadence light curves have up to 25\% lower CDPP.}
+     \label{fig:short_cad_stats}
+  \end{center}
+\end{figure}
+
+\begin{figure}[hbt]
+  \begin{center}
+      \includegraphics[width=0.47\textwidth]{figures/short_cad.pdf}
+       \caption{EPIC 201601162, a campaign 1 star observed in both long cadence and
+       short cadence modes. A portion of the raw light curve is displayed at the top,
+       and the de-trended light curve is shown in the center. In the bottom panel,
+       we plot the down-binned de-trended short cadence light curve (black) and the
+       de-trended long cadence light curve (red). Short cadence \texttt{EVEREST 2.0}
+       light curves have lower CDPP than their long cadence counterparts.}
+     \label{fig:short_cad}
+  \end{center}
+\end{figure}
+
+In Figure~\ref{fig:short_cad_stats} we plot the relative CDPP distribution of 
+671 light curves that were observed in both short and long cadence. In order to
+compute the 6 hr CDPP of short cadence light curves, we first mask outliers and then
+down-bin to long cadence by taking the mean of every 30 cadences; we then compute
+the CDPP as usual. We achieve higher average precision in the short cadence light
+curves by 5-10\% for unsaturated stars and by up to 25\% for saturated stars. The
+higher information content in the short cadence light curves --- particularly
+at sub-30 minute timescales --- allows \texttt{EVEREST} to better de-trend those stars.
+We show an example in Figure~\ref{fig:short_cad}, where we plot the light curves
+for EPIC 201601162 (raw short cadence at the top, de-trended short cadence in the
+center). In the bottom panel, we show both the down-binned short cadence de-trended light
+curve (black) and the long cadence de-trended light curve (red). The CDPP in the short
+cadence light curve is ${\sim}30\%$ that of the long cadence light curve.
+
+As we discussed in \ref{sec:impl_shortcad}, one pitfall of our method for de-trending
+short cadence targets is the large number of breakpoints (${\sim}30$) we introduce
+in the light curve when computing the model. Overcomputing the model into adjacent
+segments and aligning the models at the breakpoints works very well for high
+SNR light curves but can often fail for light curves that are dominated by photon
+noise. This is the case for very faint stars ($\Kp \lesssim 17$) observed in
+short cadence mode, such as EPIC 201831393, which displays visible discontinuities
+at many of the breakpoints. {\color{red}More...}
+
+
+\subsection{CBVs}
+\label{sec:cbvs}
+One downside of the algorithm employed by \texttt{EVEREST} is that GP regression has trouble
+distinguishing between low frequency stellar variability and low frequency instrumental
+systematics. Many of the \texttt{EVEREST} light curves display a steady rise over the
+course of the campaign, with hook-like features at the beginning, end, or both. While this
+does not affect transits or other high-frequency astrophysical signals, it could potentially
+lead to biases in stellar rotation studies that rely on low frequency modulation in the
+light curves.
+
+We therefore run a post-processing step on all de-trended light curves to remove these
+residual instrumental signals. After some experimentation, we decided to use the
+\texttt{SysRem} algorithm {\color{red}\citep{Mazeh}}, which identifies and removes signals shared by many
+light curves. \texttt{SysRem} is similar to PCA but allows for weighting of the input
+signals and is therefore better suited to dealing with light curves of varying noise
+properties.
+
+\begin{figure}[hbt]
+  \begin{center}
+      \includegraphics[width=0.4\textwidth]{figures/cbv.pdf}
+      \caption{Co-trending Basis Vectors (CBVs) for each of the first nine campaigns. 
+         We apply \texttt{SysRem} to all de-trended light curves 
+         in each campaign to obtain the first (blue) and second (red) CBVs; we do this
+         independently for each of the segments in each campaign.
+         The first set of CBVs contain primarily linear trends with hook-like
+         features at the beginning or end of the chunks; the second set of CBVs are
+         dominated by quadratic or cubic trends. We correct all 
+         light curves by simple
+         linear regression with the first two CBVs.}
+     \label{fig:cbv}
+  \end{center}
+\end{figure}
+
+We apply \texttt{SysRem} to all of the light curves in each campaign, weighting each one
+by the quadrature sum of the flux measurement errors and the white noise component of its
+GP. We separately apply \texttt{SysRem} to each light curve chunk, obtaining one
+co-trending basis vector (CBV) for each chunk of each campaign. We then subtract a linear
+fit of this CBV from each light curve and repeat the procedure to obtain a second CBV
+for each chunk of each campaign. In order to prevent the CBVs from fitting out or
+introducing high frequency signals in the light curves, we aggressively smooth them
+with a third order, 1000-cadence Savitsky-Golay filter. The results are shown in
+Figure~\ref{fig:cbv}. The first CBV for each chunk of each campaign is plotted in blue,
+and the second in red. As expected, the first CBV in each chunk is dominated by a linear trend with S-like
+hooks on either end. The second CBVs are predominantly quadratic or cubic.
+
+We fit all de-trended light curves with these CBVs by (ordinary) least squares 
+regression. We attempted to regress using the GP of each target, but there is 
+typically enough power in the GP model to strongly disfavor a CBV fit. In practice,
+our scheme works surprisingly well. Since we only use two CBVs for each chunk, and
+since these are dominated by very low order trends, the risk of fitting out true
+astrophysical variability is low. Nevertheless, light curves with modulation that
+happens to be in phase with the CBVs or stars that dim or brighten on ${\sim}90$ day
+timescales could be overfitted by this method. We defer a more careful treatment
+of these cases to future work and instead include both the PLD-de-trended flux 
+(\texttt{FLUX}) and the CBV-corrected flux (\texttt{FCOR}) in the \texttt{EVEREST 2.0}
+FITS files.
+
+\subsection{Sample light curves}
+\label{sec:sample}
+
+\begin{figure}[hbt]
+  \begin{center}
+      \includegraphics[width=0.47\textwidth]{figures/201345483.pdf}
+       \caption{EPIC 201345483, a $\Kp = 15$ campaign 1 {\color{red} planet host} de-trended
+       with \texttt{K2SFF} (top) and \texttt{EVEREST 2.0} (bottom). The CDPP of each light curve
+       is indicated in the top left. The folded transit is shown at right. The \texttt{EVEREST 2.0}
+       light curve has 2.4$\times$ higher photometric precision.}
+     \label{fig:201345483}
+  \end{center}
+\end{figure}
+
+\begin{figure}[hbt]
+  \begin{center}
+      \includegraphics[width=0.47\textwidth]{figures/201862715.pdf}
+       \caption{EPIC 201862715, a saturated campaign 1 {\color{red} planet host}. As in 
+       Figure~\ref{fig:201345483}, we show both the \texttt{K2SFF} and the \texttt{EVEREST 2.0}
+       light curves. The CDPP of the \texttt{EVEREST 2.0} light curve is a factor of 5 lower.}
+     \label{fig:201862715}
+  \end{center}
+\end{figure}
+
+In Figures~\ref{fig:201345483} and \ref{fig:201862715} we show two sample light curves
+de-trended with both \texttt{K2SFF} and \texttt{EVEREST 2.0}. Figure~\ref{fig:201345483}
+shows EPIC 201345483, a faint $\Kp = 15$ {\color{red} planet host}.
+The CDPP of the \texttt{EVEREST} light curve (bottom) is a factor of 2.4 lower than that of
+\texttt{K2SFF} (top), and the light curve has visibly fewer outliers. The folded transit
+is shown at the right and is similarly less noisy in the \texttt{EVEREST} light curve.
+
+In contrast, Figure~\ref{fig:201862715} shows a very bright ($\Kp = 10$) saturated 
+{\color{red} planet host}, EPIC 201862715. With the column-collapsing scheme and the
+inclusion of neighboring PLD vectors, \texttt{EVEREST 2.0} is able to achieve a factor
+of 5 lower CDPP than \texttt{K2SFF}, as well as considerably fewer outliers.
+
 \subsection{Comparison to Kepler}
 \label{sec:kepler}
 
@@ -992,85 +1179,6 @@ campaigns the \texttt{EVEREST 2.0} CDPP is slightly higher for these stars. For 
 dimmer than $\Kp = 15$, the \texttt{EVEREST 2.0} CDPP is within a few tens of percent ---
 or less --- than that of \emph{Kepler}.
 
-\subsection{Outliers}
-
-\begin{figure}[hbt]
-  \begin{center}
-      \includegraphics[width=0.47\textwidth]{figures/outliers.pdf}
-       \caption{Histograms showing the number of non-outlier data points per campaign for each
-        of four pipelines: \texttt{K2SFF} (gray), \texttt{K2SC} (orange), \texttt{EVEREST 1.0}
-        (red), and \texttt{EVEREST 2.0} (blue). To compute these, we remove all cadences 
-        with flagged \texttt{QUALITY} bits (excepting thruster fires) from all light curves, then
-        smooth each light curve with a second order, 2-day Savitsky-Golay filter and perform iterative 
-        sigma clipping at 5$\sigma$ to remove the outliers. The number of remaining cadences is
-        for each light curve is then used to plot the histograms. Both versions of \texttt{EVEREST}
-        have more usable data points per campaign than the other pipelines. On average, 
-        \texttt{EVEREST} light curves have ${\sim}200-300$ more non-outlier data points than \texttt{K2SFF} 
-        and ${\sim}100$ more than \texttt{K2SC}.}
-     \label{fig:outliers}
-  \end{center}
-\end{figure}
-
-In addition to yielding lower average CDPP than any other publicly available pipeline,
-\texttt{EVEREST} yields the largest number of \emph{usable} data points for any of the
-$K2$ campaigns to date. These data points generally appear as outliers even in the
-raw data, since they are highly sensitive to inter- and intra-pixel sensitivity variations.
-Pipelines that regress on functions of the spacecraft motion alone therefore have trouble
-de-trending them, resulting in ${\sim}5-10\%$ of the data points being discarded as outliers.
-In contrast, since PLD uses regressors containing both inter- and intra-pixel sensitivity
-information, it naturally de-trends data collected during thruster firing events (see Paper I).
-
-To show this, we calculated the number of non-outlier data points per campaign
-for each of the four pipelines (\texttt{K2SFF}, \texttt{K2SC}, \texttt{EVEREST 1.0}, and
-\texttt{EVEREST 2.0}). After removing all data points with flagged \texttt{QUALITY}
-bits 1-9, 11-14, and 16-17, we smoothed each light curve with a Savitsky-Golay filter and
-performed iterative sigma clipping to remove all 5$\sigma$ outliers. In Figure~\ref{fig:outliers}
-we plot histograms of the number of remaining data points for all stars in each of the first
-nine campaigns. As expected, both \texttt{EVEREST 1.0} and \texttt{EVEREST 2.0} have, on 
-average, 100--300 more usable data points than the other two pipelines. This roughly
-corresponds to the number of thruster firings per campaign, as these happen every 6--12
-hours on average.
-
-\subsection{Short cadence}
-\label{sec:shortcad}
-Short cadence results.
-
-\subsection{CBVs}
-\label{sec:cbvs}
-One downside of the algorithm employed by \texttt{EVEREST} is that GP regression has trouble
-distinguishing between low frequency stellar variability and low frequency instrumental
-systematics.
-
-\begin{figure}[h]
-	\centering   
-	\subfigure[CBV \#1]{
-		\label{fig:cbv1}
-		\includegraphics[width=0.2\textwidth]{figures/cbv1.pdf}
-	}
-	\subfigure[CBV \#2]{
-		\label{fig:cbv2}
-		\includegraphics[width=0.2\textwidth]{figures/cbv2.pdf}
-	}
-	\caption{Campaign 2 Co-trending Basis Vectors (CBVs). We apply \texttt{SysRem} to all 
-	         de-trended light curves in each of the 19 functioning modules on the \emph{Kepler}
-	         CCD. Plotted are the \textbf{(a)} first and \textbf{(b)} second CBVs recovered
-	         for each module. Since campaign 2 light curves are de-trended in two separate
-	         segments, we apply \texttt{SysRem} to each segment separately (blue and red
-	         curves). The first set of CBVs contain primarily linear trends with the hook-like
-	         thermal features at the beginning of the campaign; the second set of CBVs are
-	         dominated by quadratic trends. We correct all campaign 2 light curves by simple
-	         linear regression with the first two CBVs, with the exception of those on module
-	         20, whose second CBV signal displays higher frequency oscillations.
-	         This module contains fewer stars than the other modules, leading to CBVs that contain
-	         a higher amount of astrophysical information. For this module and for modules in 
-	         other campaigns whose second CBV is not predominantly quadratic, we correct the
-	         light curves with a single CBV. \label{fig:cbv}}
-\end{figure}
-
-\subsection{Sample light curves}
-\label{sec:sample}
-Here are some sample light curves.
-
 \section{General Remarks}
 \label{sec:remarks}
 
@@ -1104,22 +1212,55 @@ chosen as the targets with the highest probability of being RRab stars
 according to the \texttt{K2VARCAT} catalog \citep{Armstrong16}.
 Among the \texttt{EVEREST 1.0} light curves, 92/100 had visibly damped
 oscillation amplitudes or clearly overfitted stellar variability features. In contrast,
-44/100 \texttt{EVEREST 2.0} RR Lyrae stars showed signs of overfitting. For 8
+only 44/100 \texttt{EVEREST 2.0} RR Lyrae stars showed any signs of overfitting. For 8
 of these, the overfitting occurred only with the inclusion of the second or third order PLD
 models. While there are still issues with how the pipeline handles extremely variable
-stars, the improvement over version \texttt{1.0} is substantial. {\color{red} How
-does \texttt{K2SFF} do?}
+stars, the improvement over version \texttt{1.0} is substantial. 
 
-K2SFF: 96/100 bad
-K2SC: 12/65 bad (35 don't exist)
+For comparison, we visually inspected the same stars in the \texttt{K2SFF} and \texttt{K2SC} 
+catalogs. 96/100 \texttt{K2SFF} light curves of RRab stars showed signs of overfitting
+(dampened oscillation amplitudes, {\color{red}loss of coherence in the astrophysical signal}, 
+or significant de-trending artefacts), while only 12/65 (18\%) of \texttt{K2SC} light curves
+appeared to be incorrectly de-trended (35 of the 100 stars were in campaigns 0--2 and are
+not present in the \texttt{K2SC} catalog). \texttt{K2SC} likely overperforms the other
+pipelines for these stars because of its robust GP optimization scheme. Since we optimize
+the GP and de-trend the light curve in separate steps, the covariance matrix we use is often
+an improper approximation to the true covariance of the astrophysical signal. Progressive
+optimization of the GP (\S\ref{sec:impl_gp}) helps to maximize the amount of astrophysical
+information captured by the GP model, but a better procedure would be to simultaneously
+fit for the GP hyperparameters and the PLD coefficients. This would ensure that the PLD
+model captures only instrumental signals and the GP model captures only astrophysical
+signals. However, such a method is computationally intractable, since the problem would
+no longer be linear. We therefore settle for our linear method, which works extremely
+well for stars that do not exhibit extreme variability and has a ${\sim}50\%$ success
+rate for those that do. We encourage readers interested in RR Lyrae and other
+extreme variables to inspect the light curves of the different pipelines on a target-by-target
+basis.
 
 \subsection{Crowded apertures}
 \label{sec:crowded}
-Crowded apertures.
+{\color{red} I still need to run tests on a sample of crowded stars to see how the new
+version does. Ethan, do you have a list of planet candidate hosts that \texttt{EVEREST 1.0}
+screwed up? That will help me track down the crowded stars.}
 
 \subsection{Aperture losses}
 \label{sec:losses}
-Aperture losses. EPIC 210703831. Saturated stars k2sff_19, plus 2 pix top and bottom
+As we have demonstrated, column-collapsed PLD works extremely well for saturated stars,
+provided \emph{all} of the target flux in the saturated columns is used. With this
+in mind, we used larger apertures for these stars and
+extended them by two pixels at the top and bottom of all saturated columns 
+(\S\ref{sec:impl_saturated}). However, for some extremely bright ($\Kp \lesssim 8.5$) 
+targets, bleed trails in the saturated columns can extend past the edge of the
+target postage stamp. Since most of the astrophysical information in saturated columns
+is contained in the two pixels at the top and bottom, this can lead to substantial
+information loss. In this case, the column collapsing procedure fails to satisfy the
+PLD constraint that all pixels should have the same fractional astrophysical signal
+strength, and overfitting can occur. This is the case for EPIC 210703831, a campaign 4
+$\Kp = 8.1$ star, whose de-trended light curve displays several discontinuities. These
+occur because spacecraft drift results in aperture losses only during parts of the
+campaign. We therefore encourage those using the \texttt{EVEREST} catalog to inspect
+the postage stamps of extremely bright stars to ensure that aperture losses are not
+present.
 
 \section{Conclusions}
 \label{sec:conclusions}
@@ -1161,6 +1302,8 @@ continued high-precision transiting exoplanet and stellar variability science
 for the vast majority of \emph{K2} stars as if they had been observed by the original
 four-wheeled mission.
 
+The \texttt{EVEREST 2.0} catalog of de-trended light curves is publicly available
+at \url{https://archive.stsci.edu/prepds/everest/}.
 As with the previous version of the code, \texttt{EVEREST 2.0} is open source under
 the MIT license and available at \url{https://github.com/rodluger/everest}, with a 
 static release of the code used to generate the catalog archived at 

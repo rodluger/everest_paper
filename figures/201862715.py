@@ -41,7 +41,7 @@ if not ((len(k2sff_time) == len(evr2.time)) and (np.abs(k2sff_time[0] - evr2.tim
   k2sff_time = np.array(evr2.time)
 
 # Set up the plot
-fig = pl.figure(figsize = (13, 7))
+fig = pl.figure(figsize = (13, 9))
 axk2sff = pl.subplot2grid((2, 10), (0, 0), colspan = 7, rowspan = 1)
 axk2sfff = pl.subplot2grid((2, 10), (0, 7), colspan = 3, rowspan = 1)
 axevr2 = pl.subplot2grid((2, 10), (1, 0), colspan = 7, rowspan = 1)
@@ -102,14 +102,18 @@ axevr2f.get_yaxis().set_major_locator(MaxNLocator(4))
 axevr2f.get_xaxis().set_major_locator(MaxNLocator(4))
 
 # Labels and stuff
-axevr2.set_xlabel('Time (BJD - 2454833)', fontsize = 22)
-axevr2f.set_xlabel('Time (days)', fontsize = 22)
-axevr2.set_ylabel('EVEREST 2.0 Flux', fontsize = 22)
-axk2sff.set_ylabel('K2SFF Flux', fontsize = 22)
+axevr2.set_xlabel('Time (BJD - 2454833)', fontsize = 28)
+axevr2f.set_xlabel('Time (days)', fontsize = 28)
+axevr2.set_ylabel('EVEREST', fontsize = 26)
+axk2sff.set_ylabel('K2SFF', fontsize = 26)
 axevr2.annotate('13.61 ppm', xy = (0.025, 0.96), xycoords = 'axes fraction', 
-                ha = 'left', va = 'top', color = 'r', fontsize = 14)
+                ha = 'left', va = 'top', color = 'r', fontsize = 18)
 axk2sff.annotate('70.32 ppm', xy = (0.025, 0.96), xycoords = 'axes fraction', 
-                 ha = 'left', va = 'top', color = 'r', fontsize = 14)              
+                 ha = 'left', va = 'top', color = 'r', fontsize = 18)              
+for tick in axevr2.get_xticklabels() + axevr2f.get_xticklabels() + axk2sff.get_xticklabels() + axk2sfff.get_xticklabels():
+  tick.set_fontsize(16)
+axevr2.get_yaxis().set_major_locator(MaxNLocator(6))
+axk2sff.get_yaxis().set_major_locator(MaxNLocator(6)) 
 
 # Save
 fig.savefig('201862715.pdf', bbox_inches = 'tight')

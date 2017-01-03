@@ -126,5 +126,7 @@ for model in ['everest1', 'k2sff', 'k2sc']:
   ax.plot(bins[8:], by[8:], 'k-', lw = 2)
   ax.set_ylim(-1,1)
   ax.set_rasterization_zorder(0)
+  for tick in ax.get_xticklabels() + ax.get_yticklabels():
+    tick.set_fontsize(18)
   fig.savefig('cdpp_%s_all.pdf' % model, bbox_inches = 'tight')
   pl.close()

@@ -6,6 +6,7 @@ cbv.py
 
 '''
 
+import everest
 import os
 import matplotlib.pyplot as pl
 import numpy as np
@@ -51,8 +52,10 @@ for campaign in range(9):
     offset += 5
   
   # Appearance
+  ax[campaign].set_title('C%02d' % campaign, fontsize = 22)
   ax[campaign].margins(0.1, 0.1)
   ax[campaign].set_xticks([])
   ax[campaign].set_yticks([])
   
-pl.show()
+# Save
+fig.savefig('cbv.pdf', bbox_inches = 'tight')
