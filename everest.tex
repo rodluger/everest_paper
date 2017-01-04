@@ -60,9 +60,11 @@ cadence targets observed by $K2$, obtaining even higher photometric precision fo
 All light curves for campaigns 0--8 are available online in the \texttt{EVEREST} catalog, which
 will be continuously updated with future campaigns.
 \texttt{EVEREST 2.0} is open source and was coded in a general framework that can be applied
-to other photometric surveys, including \emph{Kepler} and the upcoming \emph{TESS} mission.
-\vspace*{0.7in}
+to other photometric surveys, including \emph{Kepler} and the upcoming \emph{TESS} mission.\\
+%\vspace*{0.7in}
 \end{abstract}
+
+\keywords{catalogs --- planets and satellites: detection --- techniques: photometric}
 
 \section{Introduction}
 \label{sec:intro}
@@ -567,7 +569,7 @@ eclipse is preserved and the instrumental signal is effectively removed.
 
 \begin{figure}[hbt]
   \begin{center}
-      \includegraphics[width=0.47\textwidth]{figures/saturated_star.pdf}
+      \includegraphics[width=0.45\textwidth]{figures/saturated_star.pdf}
        \caption{EPIC 202063160, a saturated \Kp = 9.2 campaign 0 eclipsing
        binary. Shown is a portion of the raw light curve (top), the light curve ``de-trended''
        with \texttt{EVEREST 1.0} (center), and the light curve de-trended with \texttt{EVEREST 2.0}
@@ -807,7 +809,7 @@ are masked. As before, we urge those using \texttt{EVEREST} light curves contain
 transits or eclipses to re-compute the model with those features masked. This process
 is quick and straightforward --- refer to the \texttt{EVEREST 2.0} documentation for
 details.
-\footnote{https://github.com/rodluger/everest}
+\footnote{\url{https://github.com/rodluger/everest}}
 
 \subsection{\texttt{rPLD}}
 \begin{figure}[hbt]
@@ -1033,15 +1035,20 @@ center). In the bottom panel, we show both the down-binned short cadence de-tren
 curve (black) and the long cadence de-trended light curve (red). The CDPP in the short
 cadence light curve is ${\sim}30\%$ that of the long cadence light curve.
 
-As we discussed in \ref{sec:impl_shortcad}, one pitfall of our method for de-trending
+As we discussed in \S\ref{sec:impl_shortcad}, one pitfall of our method for de-trending
 short cadence targets is the large number of breakpoints (${\sim}30$) we introduce
 in the light curve when computing the model. Overcomputing the model into adjacent
 segments and aligning the models at the breakpoints works very well for high
 SNR light curves but can often fail for light curves that are dominated by photon
 noise. This is the case for very faint stars ($\Kp \lesssim 17$) observed in
 short cadence mode, such as EPIC 201831393, which displays visible discontinuities
-at many of the breakpoints. {\color{red}More...}
-
+at many of the breakpoints. Low SNR short cadence light curves may also have segments 
+with varying white noise amplitudes due to differences in the value of the $\mathbf{\Lambda}$
+prior on the PLD weights. PLD is known to perform poorly when the white noise dominates
+\citep{Deming15}; in these cases, it is often desirable to down-bin the light curve and
+compute the model on a higher SNR signal, then predict onto the original short cadence
+data. Given the relatively small number of light curves for which this is an issue,
+we do not do this here.
 
 \subsection{CBVs}
 \label{sec:cbvs}
@@ -1055,7 +1062,7 @@ light curves.
 
 We therefore run a post-processing step on all de-trended light curves to remove these
 residual instrumental signals. After some experimentation, we decided to use the
-\texttt{SysRem} algorithm {\color{red}\citep{Mazeh}}, which identifies and removes signals shared by many
+\texttt{SysRem} algorithm \citep{Tamuz05}, which identifies and removes signals shared by many
 light curves. \texttt{SysRem} is similar to PCA but allows for weighting of the input
 signals and is therefore better suited to dealing with light curves of varying noise
 properties.
@@ -1078,7 +1085,14 @@ properties.
 
 We apply \texttt{SysRem} to all of the light curves in each campaign, weighting each one
 by the quadrature sum of the flux measurement errors and the white noise component of its
-GP. We separately apply \texttt{SysRem} to each light curve chunk, obtaining one
+GP. Given known correlations between instrumental signals and spatial position on the
+detector \citep[e.g.,][]{Petigura12}, we attempted to apply \texttt{SysRem} individually
+on each CCD module, but found that the recovered signals were often dominated by
+astrophysical variability originating from the brightest star(s) in each module. 
+We found that computing the \texttt{SysRem} signals for the entire detector alleviated 
+this issue without compromising the de-trending power of the method.
+
+We separately apply \texttt{SysRem} to each light curve chunk, obtaining one
 co-trending basis vector (CBV) for each chunk of each campaign. We then subtract a linear
 fit of this CBV from each light curve and repeat the procedure to obtain a second CBV
 for each chunk of each campaign. In order to prevent the CBVs from fitting out or
@@ -1106,9 +1120,9 @@ FITS files.
 \begin{figure}[hbt]
   \begin{center}
       \includegraphics[width=0.47\textwidth]{figures/201345483.pdf}
-       \caption{EPIC 201345483, a $\Kp = 15$ campaign 1 {\color{red} planet host} de-trended
+       \caption{EPIC 201345483 (K2-45), a $\Kp = 15$ campaign 1 planet host de-trended
        with \texttt{K2SFF} (top) and \texttt{EVEREST 2.0} (bottom). The CDPP of each light curve
-       is indicated in the top left. The folded transit is shown at right. The \texttt{EVEREST 2.0}
+       is indicated in the top left. The folded transit of K2-45b is shown at right. The \texttt{EVEREST 2.0}
        light curve has 2.4$\times$ higher photometric precision.}
      \label{fig:201345483}
   \end{center}
@@ -1117,7 +1131,7 @@ FITS files.
 \begin{figure}[hbt]
   \begin{center}
       \includegraphics[width=0.47\textwidth]{figures/201862715.pdf}
-       \caption{EPIC 201862715, a saturated campaign 1 {\color{red} planet host}. As in 
+       \caption{EPIC 201862715, a saturated campaign 1 planet candidate host. As in 
        Figure~\ref{fig:201345483}, we show both the \texttt{K2SFF} and the \texttt{EVEREST 2.0}
        light curves. The CDPP of the \texttt{EVEREST 2.0} light curve is a factor of 5 lower.}
      \label{fig:201862715}
@@ -1126,13 +1140,13 @@ FITS files.
 
 In Figures~\ref{fig:201345483} and \ref{fig:201862715} we show two sample light curves
 de-trended with both \texttt{K2SFF} and \texttt{EVEREST 2.0}. Figure~\ref{fig:201345483}
-shows EPIC 201345483, a faint $\Kp = 15$ {\color{red} planet host}.
+shows EPIC 201345483, a faint $\Kp = 15$ planet host.
 The CDPP of the \texttt{EVEREST} light curve (bottom) is a factor of 2.4 lower than that of
 \texttt{K2SFF} (top), and the light curve has visibly fewer outliers. The folded transit
 is shown at the right and is similarly less noisy in the \texttt{EVEREST} light curve.
 
 In contrast, Figure~\ref{fig:201862715} shows a very bright ($\Kp = 10$) saturated 
-{\color{red} planet host}, EPIC 201862715. With the column-collapsing scheme and the
+planet candidate host, EPIC 201862715. With the column-collapsing scheme and the
 inclusion of neighboring PLD vectors, \texttt{EVEREST 2.0} is able to achieve a factor
 of 5 lower CDPP than \texttt{K2SFF}, as well as considerably fewer outliers.
 
@@ -1219,7 +1233,7 @@ stars, the improvement over version \texttt{1.0} is substantial.
 
 For comparison, we visually inspected the same stars in the \texttt{K2SFF} and \texttt{K2SC} 
 catalogs. 96/100 \texttt{K2SFF} light curves of RRab stars showed signs of overfitting
-(dampened oscillation amplitudes, {\color{red}loss of coherence in the astrophysical signal}, 
+(dampened oscillation amplitudes, distorted astrophysical signal, 
 or significant de-trending artefacts), while only 12/65 (18\%) of \texttt{K2SC} light curves
 appeared to be incorrectly de-trended (35 of the 100 stars were in campaigns 0--2 and are
 not present in the \texttt{K2SC} catalog). \texttt{K2SC} likely overperforms the other
