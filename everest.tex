@@ -54,7 +54,7 @@ power of the model and minimize overfitting, particularly for faint stars. We al
 stars and improved its performance on extremely variable stars. On average, \texttt{EVEREST 2.0}
 light curves have 10--20\% higher photometric precision than those in the previous version,
 yielding the highest precision light curves at all $\Kp$ magnitudes of any publicly available
-pipeline. For most $K2$ campaigns, we recover the original \emph{Kepler} precision to at least
+catalog. For most $K2$ campaigns, we recover the original \emph{Kepler} precision to at least
 $\Kp = 14$, and to at least $\Kp = 15$ for campaigns 1, 5, and 6. We have also de-trended all short
 cadence targets observed by $K2$, obtaining even higher photometric precision for these stars.
 All light curves for campaigns 0--8 are available online in the \texttt{EVEREST} catalog, which
@@ -1256,6 +1256,9 @@ basis.
 {\color{red} I still need to run tests on a sample of crowded stars to see how the new
 version does. Ethan, do you have a list of planet candidate hosts that \texttt{EVEREST 1.0}
 screwed up? That will help me track down the crowded stars.}
+
+\subsection{Misc}
+{\color{red} EPIC 220651426: different de-trending power in each chunk. CBV tails.}
 
 \subsection{Aperture losses}
 \label{sec:losses}
