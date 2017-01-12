@@ -17,6 +17,32 @@
 \usepackage{wasysym}
 \usepackage{rotating}
 
+% Code examples
+\usepackage{listings}
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\lstdefinestyle{mystyle}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\footnotesize,
+    breakatwhitespace=false,         
+    breaklines=true,                 
+    captionpos=b,                    
+    keepspaces=true,                 
+    numbers=left,                    
+    numbersep=5pt,                  
+    showspaces=false,                
+    showstringspaces=false,
+    showtabs=false,                  
+    tabsize=2
+}
+\lstset{style=mystyle}
+
 \newcommand{\noop}[1]{}
 \newcommand{\note}[1]{{\color{red} #1}}
 \newcommand{\cn}{\note{(citation needed)\ }}
@@ -40,7 +66,7 @@
 
 \title{An update to the EVEREST K2 pipeline:\\ Short cadence, saturated stars, and Kepler-like photometry down to $\Kp = 15$}
 \author{Rodrigo Luger\altaffilmark{1,2}, Ethan Kruse\altaffilmark{1}, Daniel Foreman-Mackey\altaffilmark{1,3},\\
-Eric Agol\altaffilmark{1,2}, Nicholas Saunders\altaffilmark{1}, Rory Barnes\altaffilmark{1,2}}
+Eric Agol\altaffilmark{1,2}, Nicholas Saunders\altaffilmark{1}}
 \altaffiltext{1}{Astronomy Department, University of Washington, Box 351580, Seattle, WA 98195, USA; \href{mailto:rodluger@uw.edu}{rodluger@uw.edu}}
 \altaffiltext{2}{Virtual Planetary Laboratory, Seattle, WA 98195, USA}
 \altaffiltext{3}{Sagan Fellow}
@@ -1253,6 +1279,15 @@ basis.
 
 \subsection{Crowded apertures}
 \label{sec:crowded}
+
+\begin{figure}[hbt]
+  \begin{center}
+      \includegraphics[width=0.47\textwidth]{figures/crowding.pdf}
+       \caption{Crowded EBs.}
+     \label{fig:crowding}
+  \end{center}
+\end{figure}
+
 {\color{red} I still need to run tests on a sample of crowded stars to see how the new
 version does. Ethan, do you have a list of planet candidate hosts that \texttt{EVEREST 1.0}
 screwed up? That will help me track down the crowded stars.}
@@ -1278,6 +1313,17 @@ occur because spacecraft drift results in aperture losses only during parts of t
 campaign. We therefore encourage those using the \texttt{EVEREST} catalog to inspect
 the postage stamps of extremely bright stars to ensure that aperture losses are not
 present.
+
+\section{Using EVEREST}
+\label{sec:using}
+
+\begin{lstlisting}[language=Python]
+import everest
+star = everest.Everest(201367065)
+star.mask_planet(1980.42, 10.054)
+star.compute()
+star.plot()
+\end{lstlisting}
 
 \section{Conclusions}
 \label{sec:conclusions}
