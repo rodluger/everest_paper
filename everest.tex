@@ -24,17 +24,17 @@
 \definecolor{codepurple}{rgb}{0.58,0,0.82}
 \definecolor{backcolour}{rgb}{0.98,0.98,0.95}
 \lstdefinestyle{mystyle}{
-    backgroundcolor=\color{backcolour},   
+    %backgroundcolor=\color{backcolour},   
     commentstyle=\color{codegreen},
     keywordstyle=\color{magenta},
     numberstyle=\tiny\color{codegray},
     stringstyle=\color{codepurple},
-    basicstyle=\footnotesize,
+    %basicstyle=\footnotesize,
     breakatwhitespace=false,         
     breaklines=true,                 
     captionpos=b,                    
     keepspaces=true,                 
-    numbers=left,                    
+    %numbers=left,                    
     numbersep=5pt,                  
     showspaces=false,                
     showstringspaces=false,
@@ -450,7 +450,7 @@ discuss the implementation of \texttt{nPLD} in \S\ref{sec:implementation}.
 \section{Implementation}
 \label{sec:implementation}
 
-\subsection{Light curves}
+\subsection{Light Curves}
 \label{sec:impl_lightcurves}
 As in Paper I, we downloaded all stars in the $K2$ EPIC catalog with long and/or short cadence
 target pixel files and adopted aperture \#15
@@ -516,7 +516,7 @@ While this method removes flux discontinuities, it can introduce discontinuities
 derivative of the flux, showing up as spurious ``kinks'' in the light curve. We 
 remove these in a post-processing step (\S\ref{sec:cbvs}).
 
-\subsection{Neighboring stars}
+\subsection{Neighboring Stars}
 \label{sec:impl_neighboring}
 In principle, the larger the number of neighboring PLD vectors we include in the
 \texttt{nPLD} design matrix, the higher the de-trending power of our model. However, adding 
@@ -558,7 +558,7 @@ with \texttt{nPLD}, we therefore select neighboring stars with no other known so
 in their apertures that are bright enough ($\Delta \Kp < 5$) to contaminate the PLD
 vectors.
 
-\subsection{Saturated stars}
+\subsection{Saturated Stars}
 \label{sec:impl_saturated}
 As discussed in Paper I, PLD typically fails for stars with saturated pixels, resulting
 in overfitted light curves with artificially low scatter and suppressed astrophysical 
@@ -619,7 +619,7 @@ eclipse is preserved and the instrumental signal is effectively removed.
   \end{center}
 \end{figure}
 
-\subsection{Short cadence}
+\subsection{Short Cadence}
 \label{sec:impl_shortcad}
 We treat short cadence targets in much the same way as long cadence targets, with the exception
 that we find it necessary to introduce more breakpoints in the light curves. This is
@@ -791,7 +791,7 @@ in Paper I: we smooth the light curves with a Savitsky-Golay filter, clip
 outliers at 5$\sigma$, and compute the median standard deviation in 13-cadence
 segments, normalized by $\sqrt{13}$.
 
-\subsection{Injection tests}
+\subsection{Injection Tests}
 \label{sec:inj}
 
 \begin{figure}[hbt]
@@ -1031,7 +1031,7 @@ average, 100--300 more usable data points than the other two pipelines. This rou
 corresponds to the number of thruster firings per campaign, as these happen every 6--12
 hours on average.
 
-\subsection{Short cadence}
+\subsection{Short Cadence}
 \label{sec:shortcad}
 
 \begin{figure}[hbt]
@@ -1154,7 +1154,7 @@ so that targets may be further corrected by the user on a case-by-case basis (se
 %typically enough power in the GP model to strongly disfavor a CBV fit. In practice,
 %our scheme works surprisingly well. 
 
-\subsection{Sample light curves}
+\subsection{Sample Light Curves}
 \label{sec:sample}
 
 \begin{figure}[hbt]
@@ -1236,7 +1236,7 @@ or less --- than that of \emph{Kepler}.
 \section{Additional Remarks}
 \label{sec:remarks}
 
-\subsection{Variable stars}
+\subsection{Variable Stars}
 \label{sec:variables}
 In Paper I we discussed how \texttt{EVEREST} often fails to properly de-trend
 extremely variable stars, such as RR Lyrae variables and very short period eclipsing
@@ -1291,7 +1291,7 @@ rate for those that do. We encourage readers interested in RR Lyrae and other
 extreme variables to inspect the light curves of the different pipelines on a target-by-target
 basis.
 
-\subsection{Crowded apertures}
+\subsection{Crowded Apertures}
 \label{sec:crowded}
 
 \begin{figure}[hbt]
@@ -1355,7 +1355,7 @@ selection, which can mitigate the effects of crowding for targets like EPIC 2116
 \subsection{Misc}
 \note{EPIC 220651426: different de-trending power in each segment. CBV tails.}
 
-\subsection{Aperture losses}
+\subsection{Aperture Losses}
 \label{sec:losses}
 As we have demonstrated, column-collapsed PLD works extremely well for saturated stars,
 provided \emph{all} of the target flux in the saturated columns is used. With this
@@ -1416,16 +1416,20 @@ cadences that were masked when computing the model:
 \end{tabular}
 \end{center}
 %
-Data flagged with bit \texttt{23}
-
-Data flagged with bit \texttt{24} is missing in the original TPF and can thus be safely
-ignored.
-
-While most of the data points flagged with bit \texttt{25} are poorly de-trended
-instrumental outliers, exoplanet transits may also be flagged with this bit
-
-The four remaining extensions include the PLD regressors, the target aperture, and additional
-information used internally by the Python code.
+When using the \texttt{EVEREST} light curves for science purposes, it is important
+to properly reject these outliers. Data flagged with bit \texttt{23} is typically 
+affected by cosmic rays or detector anomalies, and can usually be ignored. In
+some cases, however, deep transits or eclipses can be mistaken for detector
+anomalies and are incorrectly flagged in the original TPF, so a visual inspection
+of the light curves is recommended. Data flagged with bit \texttt{24}, on the other
+hand, is missing in the original TPF and can thus be safely ignored. Finally, bit
+\texttt{25} usually corresponds to instrumental outliers that were not properly
+de-trended with PLD. However, transits, flares, and other short timescale astrophysical
+features will also be flagged with this bit, so this data should \emph{not} be
+blindly excluded when performing transit searches.
+  
+The four remaining \texttt{FITS} extensions include the PLD regressors, the target aperture, 
+and additional information used internally by the Python code.
 
 \subsection{Data Validation Summaries}
 \label{sec:dvs}
@@ -1433,7 +1437,7 @@ Each target in the catalog also has an associated data validation summary (DVS),
 \texttt{PDF} document showing the raw, de-trended, and CBV-corrected light curves, 
 as well as cross-validation diagnostic plots such as those in Figure~\ref{fig:crossval}
 and a high resolution POSS image of the target aperture like those shown in 
-Figure~\ref{fig:crowded}.
+Figure~\ref{fig:crowding}.
 
 \subsection{Python Code}
 \label{sec:python}
@@ -1443,21 +1447,52 @@ The \texttt{EVEREST} code can be installed using the package managing system \te
 pip install everest-pipeline
 \end{lstlisting}
 %
-or directly from source on the project \texttt{github} page. The primary way of interfacing
-with the catalog is to instantiate an \texttt{Everest} object. The following
-
+or directly from source by following the instructions on the \texttt{github} page. 
+The primary way of interfacing
+with the catalog is to instantiate an \texttt{Everest} object:
+%
+\lstset{emph={EPIC}, emphstyle=\itshape}
 \begin{lstlisting}[language=Python]
 import everest
-star = everest.Everest(201367065)
+star = everest.Everest(EPIC)
 \end{lstlisting}
+%
+where \texttt{EPIC} is the EPIC number of the target. These lines download the
+target's \texttt{FITS} file and populate
+the \texttt{star} object with the de-trending information and light curve arrays
+(\texttt{time}, \texttt{flux}, \texttt{fcor}).
+The \texttt{QUALITY} flags \texttt{23}, \texttt{24}, \texttt{25}, and \texttt{27} are 
+used to generate the \texttt{badmask}, \texttt{nanmask}, \texttt{outmask}, and 
+\texttt{transitmask} arrays, respectively; these arrays contain the indices of all
+data points whose corresponding bit is flagged.
 
+As we discussed in \S\ref{sec:inj}, it is important that transits are properly masked
+when computing the PLD model; otherwise, slight overfitting may occur. Users should 
+therefore always mask known transits and re-compute the PLD model, as follows:
+%
+\lstset{emph={time, period, duration}, emphstyle=\itshape}
 \begin{lstlisting}[language=Python]
-star.mask_planet(1980.42, 10.054)
+star.mask_planet(time, period, duration)
 star.compute()
-star.plot()
 \end{lstlisting}
+%
+where \texttt{time} is the time of first transit (in units of $\mathrm{BJD} - 2454833$),
+\texttt{period} is the transit period (in days), and \texttt{duration} is the full
+transit duration (also in days). Re-computing the model takes no more than 
+a few seconds for long cadence light curves.
 
-\note{Some discussion of how to deal with remaining outliers/flagged cadences.}
+Users can also easily change the number of CBVs used to correct the light curve:
+%
+\lstset{emph={n}, emphstyle=\itshape}
+\begin{lstlisting}[language=Python]
+star.cbv_num = n
+star.compute()
+\end{lstlisting}
+%
+where \texttt{n} is the desired number of CBVs (0 -- 5).
+
+The code also implements various visualization routines, which are described in
+the documentation linked on the \texttt{github} page.
 
 \section{Conclusions}
 \label{sec:conclusions}
