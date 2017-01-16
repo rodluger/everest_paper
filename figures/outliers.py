@@ -11,6 +11,7 @@ from everest.missions.k2.aux import GetK2Campaign
 from everest.utils import sort_like
 import os
 import matplotlib.pyplot as pl
+from matplotlib.ticker import MaxNLocator
 import numpy as np
 
 fig, axes = pl.subplots(3, 3, figsize = (15, 13))
@@ -76,8 +77,13 @@ for campaign, ax in enumerate(axes):
   ymax = ax.get_ylim()[1]
   ax.set_ylim(0, 1.2 * ymax)
   ax.set_title('C%02d' % campaign, fontsize = 26)
-
-axes[7].set_xlabel('Kepler Magnitude', fontsize = 34, labelpad = 20)
+  
+  ax.get_xaxis().set_major_locator(MaxNLocator(5, integer = True))
+  ax.get_yaxis().set_major_locator(MaxNLocator(4, integer = True))
+  for tick in ax.get_xticklabels() + ax.get_yticklabels():
+    tick.set_fontsize(18)
+  
+axes[7].set_xlabel('Number of Non-Outliers', fontsize = 34, labelpad = 20)
 axes[3].set_ylabel('Number of Stars', fontsize = 34, labelpad = 20)
   
 fig.savefig('outliers.pdf', bbox_inches = 'tight')

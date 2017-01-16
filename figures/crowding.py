@@ -8,6 +8,7 @@ crowding.py
 
 import everest
 import matplotlib.pyplot as pl
+from matplotlib.ticker import MaxNLocator
 import numpy as np
 import george
 import k2plr
@@ -24,18 +25,29 @@ epics =   [202072978, 202103762, 218803648, 202733088, 211685048]
 periods = [4.8840812, 1.3264960,   14.0532, 3.4338287, 0.7690710]
 t0s =     [0.7787,         0.15,     -0.84,     0.675, 2306.8526]
 durs =    [0.9,            0.15,       0.8,      0.35,       0.2]
+sources = [('12.2', '16.3'), ('13.2', '14.7'), ('12.5', '15.5', '16.2'), ('11.2', '14.3'), ('14.3', '15.0')]
+ylims = [(0.45, 1.05), (0.65, 1.05), (0.7, 1.05), (0.7, 1.05), (0.97, 1.005)]
+yticks = [(0.5, 0.75, 1.0), (0.7, 0.85, 1.0), (0.8, 0.9, 1.0), (0.8, 0.9, 1.0), (0.98, 0.99, 1.0)]
+yticklabels = [("0.50", "0.75", "1.00"), 
+               ("0.70", "0.85", "1.00"), 
+               ("0.80", "0.90", "1.00"), 
+               ("0.80", "0.90", "1.00"), 
+               ("0.98", "0.99", "1.00")]
 
 # Set up plot
 fig, ax = pl.subplots(5, 3, figsize = (7, 15))
 for axis in ax.flatten():
   axis.set_xticklabels([])
+for axis in ax[:,1]:
   axis.set_yticklabels([])
-ax[0,0].set_title('Everest 1.0', fontsize = 16)
-ax[0,1].set_title('Everest 2.0', fontsize = 16)
+ax[0,0].set_title('EVEREST 1.0', fontsize = 16)
+ax[0,1].set_title('EVEREST 2.0', fontsize = 16)
+ax[-1,0].set_xlabel('Time', fontsize = 18)
+ax[-1,1].set_xlabel('Time', fontsize = 18)
 plasma = pl.get_cmap('gray_r')
 plasma.set_bad(alpha = 0)
   
-for n, epic, period, t0, dur in zip(range(len(epics)), epics, periods, t0s, durs):
+for n, epic, period, t0, dur, src in zip(range(len(epics)), epics, periods, t0s, durs, sources):
   
   # Get the data
   e2 = everest.Everest(epic)
@@ -86,16 +98,16 @@ for n, epic, period, t0, dur in zip(range(len(epics)), epics, periods, t0s, durs
   # Plot
   ax[n,0].plot(x1, y1, 'k.', alpha = 0.5, ms = 2)
   ax[n,1].plot(x2, y2, 'k.', alpha = 0.5, ms = 2)
-  ax[n,0].set_ylabel('%d' % epic, fontsize = 14)
+  ax[n,0].set_ylabel('EPIC %d' % epic, fontsize = 18)
   
-  # Get ylims
-  yfin = np.delete(y2, np.where(np.isnan(y2)))
-  lo, hi = yfin[np.argsort(yfin)][[25,-25]]
-  pad = (hi - lo) * 0.2
-  ylim = (lo - pad, hi + pad)
-  ax[n,0].set_ylim(*ylim)
-  ax[n,1].set_ylim(*ylim)
+  # Set lims
   ax[n,1].set_xlim(*ax[n,0].get_xlim())
+  ax[n,0].set_yticks(yticks[n])
+  ax[n,0].set_yticklabels(yticklabels[n])
+  ax[n,1].set_yticks(yticks[n])
+  ax[n,1].set_yticklabels([])
+  ax[n,0].set_ylim(ylims[n])
+  ax[n,1].set_ylim(ylims[n])
   
   # Plot Hi Res image
   ny, nx = e2.pixel_images[0].shape
@@ -108,13 +120,25 @@ for n, epic, period, t0, dur in zip(range(len(epics)), epics, periods, t0s, durs
   ax[n,2].contour(highres, levels=[0.5], extent=extent, origin='lower', colors='r', linewidths=1)
   ax[n,2].set_xticks([])
   ax[n,2].set_yticks([])
-  ax[n,2].set_xlim(-0.7, nx - 0.3)
-  ax[n,2].set_ylim(-0.7, ny - 0.3)
+  
+  # Get plot bounds
+  tmp = np.array([np.argmax(contour[i]) for i in range(contour.shape[0])])
+  left = min(tmp[tmp > 0])
+  tmp = np.array([np.argmax(contour[:,j]) for j in range(contour.shape[1])])
+  bottom = min(tmp[tmp > 0])
+  tmp = np.array([np.argmax(contour[i][::-1]) for i in range(contour.shape[0])])
+  right = nx - min(tmp[tmp > 0])
+  tmp = np.array([np.argmax(contour[:,j][::-1]) for j in range(contour.shape[1])])
+  top = ny - min(tmp[tmp > 0])
+  ax[n,2].set_xlim(left - 2.7, right + 1.7)
+  ax[n,2].set_ylim(bottom - 2.7, top + 1.7)
+    
+  # Plot nearby sources
   for source in e2.nearby:
-    ax[n,2].annotate('%.1f' % source['mag'], 
-                     xy = (source['x'] - source['x0'], source['y'] - source['y0']), 
-                     ha = 'center', va = 'center', size = 14, color = 'r', fontweight = 'bold') 
+    if ('%.1f' % source['mag']) in src:
+      ax[n,2].annotate('%.1f' % source['mag'], 
+                       xy = (source['x'] - source['x0'], source['y'] - source['y0']), 
+                       ha = 'center', va = 'center', size = 14, color = 'r', fontweight = 'bold') 
 
-# I had to manually crop the apertures, so I plotted the
-# figure interactively and saved it from there
-pl.show()
+# Save
+fig.savefig("crowding.pdf", bbox_inches = 'tight')

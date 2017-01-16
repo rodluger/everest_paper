@@ -66,10 +66,12 @@ for model in ['everest1', 'k2sff', 'k2sc']:
     epic_1, cdpp6_1 = np.loadtxt(os.path.join(EVEREST_SRC, 'missions', 'k2', 
                                  'tables', 'c%02d_%s.cdpp' % (int(campaign), model)), unpack = True)
     cdpp6_1 = sort_like(cdpp6_1, epic, epic_1)  
-        
+      
     # Plot
     alpha = min(0.1, 500. / (1 + len(epic)))
     y = (cdpp6 - cdpp6_1) / cdpp6_1
+    
+    '''
     ax.scatter(kp[unsat], y[unsat], color = 'b', marker = '.', alpha = alpha, zorder = -1)
     ax.scatter(kp[sat], y[sat], color = 'r', marker = '.', alpha = alpha, zorder = -1)
     ax.set_xlim(8,18)
@@ -89,6 +91,7 @@ for model in ['everest1', 'k2sff', 'k2sc']:
     ax.set_ylim(-1,1)
     ax.set_title('C%02d' % campaign, fontsize = 22)
     ax.set_rasterization_zorder(0)
+    '''
     
     # Append to running lists
     yunsat.extend(y[unsat])
@@ -96,7 +99,7 @@ for model in ['everest1', 'k2sff', 'k2sc']:
     kpunsat.extend(kp[unsat])
     kpsat.extend(kp[sat])
     
-  fig.savefig('cdpp_%s.pdf' % model, bbox_inches = 'tight')
+  #fig.savefig('cdpp_%s.pdf' % model, bbox_inches = 'tight')
   pl.close()
   
   # Plot all campaigns at once
@@ -128,5 +131,19 @@ for model in ['everest1', 'k2sff', 'k2sc']:
   ax.set_rasterization_zorder(0)
   for tick in ax.get_xticklabels() + ax.get_yticklabels():
     tick.set_fontsize(18)
+  
+  # Arrows
+  ax.annotate('', xy=(1.025, 0), xycoords = 'axes fraction',
+              xytext = (1.025, 0.5), size = 20, textcoords = 'axes fraction',
+              arrowprops=dict(arrowstyle = "simple", color = 'k', alpha = 0.25, ec = 'none'))
+  ax.annotate('Lower CDPP in EVEREST2', xy = (1.05, 0.25), xycoords = 'axes fraction',
+              ha = 'center', va = 'center', rotation = -90, fontsize = 12, alpha = 0.5)
+  ax.annotate('', xy=(1.025, 1), xycoords = 'axes fraction',
+              xytext = (1.025, 0.5), size = 20, textcoords = 'axes fraction',
+              arrowprops=dict(arrowstyle = "simple", color = 'k', alpha = 0.25, ec = 'none'))
+  ax.annotate('Lower CDPP in %s' % model.upper(), xy = (1.05, 0.75), xycoords = 'axes fraction',
+              ha = 'center', va = 'center', rotation = -90, fontsize = 12, alpha = 0.5)
+
+  # Save  
   fig.savefig('cdpp_%s_all.pdf' % model, bbox_inches = 'tight')
   pl.close()

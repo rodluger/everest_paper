@@ -22,7 +22,7 @@
 \definecolor{codegreen}{rgb}{0,0.6,0}
 \definecolor{codegray}{rgb}{0.5,0.5,0.5}
 \definecolor{codepurple}{rgb}{0.58,0,0.82}
-\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\definecolor{backcolour}{rgb}{0.98,0.98,0.95}
 \lstdefinestyle{mystyle}{
     backgroundcolor=\color{backcolour},   
     commentstyle=\color{codegreen},
@@ -72,20 +72,20 @@ Eric Agol\altaffilmark{1,2}, Nicholas Saunders\altaffilmark{1}}
 \altaffiltext{3}{Sagan Fellow}
 
 \begin{abstract}
-We present an update to the \texttt{EVEREST} $K2$ pipeline, aimed at addressing various limitations
-in the previous version and improving the photometric precision of the de-trended light curves.
-We developed a fast regularization scheme for third order pixel level decorrelation (PLD) and
-adapted the algorithm to include the PLD vectors of neighboring stars to enhance the predictive
-power of the model and minimize overfitting, particularly for faint stars. We also modified PLD to work for saturated
-stars and improved its performance on extremely variable stars. On average, \texttt{EVEREST 2.0}
+We present an update to the \texttt{EVEREST} $K2$ pipeline that addresses various limitations
+in the previous version and improves the photometric precision of the de-trended light curves.
+We develop a fast regularization scheme for third order pixel level decorrelation (PLD) and
+adapt the algorithm to include the PLD vectors of neighboring stars to enhance the predictive
+power of the model and minimize overfitting, particularly for faint stars. We also modify PLD to work for saturated
+stars and improve its performance on extremely variable stars. On average, \texttt{EVEREST 2.0}
 light curves have 10--20\% higher photometric precision than those in the previous version,
-yielding the highest precision light curves at all $\Kp$ magnitudes of any publicly available
+yielding the highest precision light curves at all $\Kp$ magnitudes of any publicly available $K2$
 catalog. For most $K2$ campaigns, we recover the original \emph{Kepler} precision to at least
-$\Kp = 14$, and to at least $\Kp = 15$ for campaigns 1, 5, and 6. We have also de-trended all short
+$\Kp = 14$, and to at least $\Kp = 15$ for campaigns 1, 5, and 6. We also de-trend all short
 cadence targets observed by $K2$, obtaining even higher photometric precision for these stars.
 All light curves for campaigns 0--8 are available online in the \texttt{EVEREST} catalog, which
 will be continuously updated with future campaigns.
-\texttt{EVEREST 2.0} is open source and was coded in a general framework that can be applied
+\texttt{EVEREST 2.0} is open source and is coded in a general framework that can be applied
 to other photometric surveys, including \emph{Kepler} and the upcoming \emph{TESS} mission.\\
 %\vspace*{0.7in}
 \end{abstract}
@@ -100,12 +100,12 @@ achieve the fine pointing precision required for the groundbreaking
 transiting exoplanet and stellar variability science that the first four years of the
 mission allowed. Since 2014 the spacecraft has been operating in a new mode, known
 as $K2$, using the solar wind and periodic thruster firings to mitigate drift
-\citep{Howell14}. However, despite these measures, raw $K2$ photometry is significantly
+\citep{Howell14}. Despite these measures, raw $K2$ photometry is significantly
 poorer than that of the original \emph{Kepler} mission. In order to enable
 continuing precision science with $K2$, numerous pipelines have been developed
 \citep[e.g.,][]{VanderburgJohnson14,Armstrong15,Lund15,Crossfield15,ForemanMackey15,Huang15,Aigrain16},
 many producing light curves with precision approaching that of \emph{Kepler}.
-Despite significant differences in their implementation, all of these pipelines
+\note{Despite significant differences in their implementation, all of these pipelines
 regress (whether implicitly or explicitly) on information relating to the motion
 of the spacecraft as determined from the collective behavior of hundreds or thousands
 of stars on the CCD. Since this information is encoded at high signal-to-noise in
@@ -114,7 +114,7 @@ instrumental effects due to the spacecraft motion. However, inhomogeneities in t
 detector at the pixel level lead to inter- and intra-pixel sensitivity variations
 that distort astrophysical information in ways that these methods cannot fully
 correct for, particularly when these variations are different across different
-pixels or in different locations on the detector.
+pixels or in different locations on the detector.}
 
 In \cite{Luger16} (henceforth Paper I), we developed the first version of our 
 pipeline, \texttt{EVEREST} (EPIC Variability Extraction and Removal for Exoplanet
@@ -135,8 +135,9 @@ power for these targets.
 The paper is organized as follows: in \S\ref{sec:model} we derive the mathematical
 framework of the \texttt{EVEREST 2.0} model, and in \S\ref{sec:implementation} we describe 
 the implementation of our pipeline in detail. We present our results in \S\ref{sec:results}
-and some general remarks in \S\ref{sec:remarks}. In \S\ref{sec:conclusions} we 
-summarize the work and list the \texttt{EVEREST} resources available online.
+and some additional remarks in \S\ref{sec:remarks}. In \S\ref{sec:using} we briefly discuss how
+to use the \texttt{EVEREST} catalog and code, and in \S\ref{sec:conclusions} we 
+summarize the work.
 
 \section{The PLD Model}
 \label{sec:model}
@@ -151,7 +152,7 @@ of the target aperture are used as regressors in a linear model:
              &\sum\limits_{i} \sum\limits_{j} \sum\limits_{k} c_{ijk} \frac{\mathbf{p}_{i}\mathbf{p}_{j}\mathbf{p}_{k}} {(\sum\limits_{n}\mathbf{p}_{n})^3}.
 \end{align}
 %
-In the expression above, $\mathbf{m}$ is the model and $\mathbf{p}_{i}$ is the flux in
+In the expression above, $\mathbf{m}$ is the instrumental model and $\mathbf{p}_{i}$ is the flux in
 the $i^{th}$ pixel; both are vector quantities defined at an array of times $\mathbf{t}$.
 Each term corresponds to a different PLD order (first, second, and third) resulting from 
 a Taylor expansion of the instrumental signal.
@@ -159,8 +160,8 @@ The $a_i$, $b_{ij}$, and $c_{ijk}$ are the linear weights of the model, which we
 to obtain below. For a detailed discussion of the theory behind PLD, see 
 \cite{Deming15} and Paper I. Below we simply discuss its mathematical implementation.
 
-\subsection{Ridge Regression (\texttt{rPLD})}
-\label{sec:ridge}
+\subsection{Regularized Regression (\texttt{rPLD})}
+\label{sec:regreg}
 Given a timeseries $\mathbf{y}$ with $N_{dat}$ data points, we wish to find the linear
 combination of $N_{reg}$ regressors that best fits the instrumental component of $\mathbf{y}$.
 Expressed in vector form, our linear model is thus
@@ -195,11 +196,12 @@ In Paper I, we obtained $\mathbf{w}$ by maximizing the likelihood function
 \end{align}
 %
 where $\mathbf{K}$ is the ($N_{dat} \times N_{dat}$) covariance matrix of the data and
-$\mathbf{y}$ is the ($N_{dat} \times 1$) SAP flux. Since the number of third order PLD regressors can
+$\mathbf{y}$ is the ($N_{dat} \times 1$) simple aperture photometry (SAP) flux. Since the 
+number of third order PLD regressors can
 be quite large (on the order of several thousand for a typical star, which is larger than the number
 of data points), the problem is ill-posed, meaning that a unique solution does not exist and 
 maximizing $\log\mathcal{L}_0$ is likely to lead to overfitting. We thus constructed $\mathbf{X}$
-from the (smaller) set of $N_{pca}$ principal components of the PLD regressors. We chose $N_{pca}$
+from the (smaller) set of $N_{pc}$ principal components of the PLD regressors. We chose $N_{pc}$
 by performing cross-validation, which aims to maximize the predictive power of the model while
 minimizing overfitting.
 
@@ -213,8 +215,8 @@ A common regression method for ill-posed problems is regularization, in which a 
 on the values of the weights $\mathbf{w}$. Since overfitting occurs when $\mathbf{w}$ becomes very
 large, regularization recasts the problem by adding a penalty term to the likelihood that 
 increases with increasing $|\mathbf{w}|$. While many forms of regularization exist, we focus on
-ridge (L2) regression, since it has an analytic solution. Ridge regression involves placing a
-Gaussian prior on each of the weights $\mathbf{w}$, so that the posterior likelihood function becomes
+L2 regularization, since it has an analytic solution. L2 regularization is mathematically equivalent to
+placing a Gaussian prior on each of the weights $\mathbf{w}$, so that the posterior likelihood function becomes
 %
 \begin{align}
 \label{eq:like}
@@ -224,7 +226,8 @@ Gaussian prior on each of the weights $\mathbf{w}$, so that the posterior likeli
                    -\frac{1}{2} \log\left|\mathbf{\Lambda}\right|,
 \end{align}
 %
-where $\mathbf{\Lambda}$ is the ($N_{reg} \times N_{reg}$) diagonal regularization matrix,
+where $\mathbf{\Lambda}$ is the ($N_{reg} \times N_{reg}$) regularization matrix,
+which we choose to be diagonal for simplicity and for computational efficiency:
 %
 \begin{align}
 \label{eq:Lambda}
@@ -233,8 +236,8 @@ where $\mathbf{\Lambda}$ is the ($N_{reg} \times N_{reg}$) diagonal regularizati
 %
 Each element $\lambda_n^2$ in $\mathbf{\Lambda}$ is the variance of the 
 zero-mean Gaussian prior on the weight of the corresponding column of the design matrix, 
-$\mathbf{X}_{*,n}$. Provided we choose the $\lambda_{n}$ correctly, this model should 
-have a higher predictive power than the PCA model adopted in Paper I.
+$\mathbf{X}_{*,n}$. In practice we find that if we choose the $\lambda_{n}$ correctly, this model has 
+a higher predictive power than the PCA model adopted in Paper I. \note{Cite Wang et al. (2016).}
 
 Given this formulation, our task is to find the weights $\mathbf{\hat{w}}$ that maximize 
 the posterior probability 
@@ -273,13 +276,14 @@ with corresponding model
 %
 \cdot \mathbf{X}^\top \cdot \mathbf{K}^{-1} \cdot \mathbf{y}.
 \end{align}
-In what follows, we refer to the implementation of PLD with ridge regression as \texttt{rPLD}.
+In what follows, we refer to the implementation of PLD with regularized regression as \texttt{rPLD}.
 
 \subsection{Cross-validation}
 \label{sec:crossval}
 Similarly to Paper I, we solve for $\mathbf{\Lambda}$ by cross-validation. For each value
 of $\mathbf{\Lambda}$, the model is trained on one part of the light curve (the training set)
-and used to de-trend the other part of the light curve (the validation set). The value of 
+and used to de-trend the other part of the light curve (the validation set); see
+\S\ref{sec:impl_crossval} for details. The value of 
 $\mathbf{\Lambda}$ that results in the minimum scatter in the validation set is then chosen for
 the final de-trending step. 
 
@@ -323,7 +327,7 @@ $N_{dat} \sim\ $500 data points in each cross-validation light curve segment
 is thus computationally expensive, and becomes prohibitive during cross-validation,
 since this must be done for every set of $\lambda_{n}$'s. Fortunately, we can reduce 
 the number of calculations with some linear algebra. First, we apply the Woodbury matrix 
-identity to Equation~(\ref{eq:model_slow}), obtaining
+identity \citep[e.g.,][]{GolubVanLoan96} to Equation~(\ref{eq:model_slow}), obtaining
 %
 \begin{align}
 \label{eq:model_woodbury}
@@ -400,17 +404,17 @@ is the inversion.
 
 \subsection{Neighboring Stars (\texttt{nPLD})}
 \label{sec:neighboring}
-The principal difference between PLD and other methods used to correct $K2$ light curves
+\note{The principal difference between PLD and other methods used to correct $K2$ light curves
 \citep[e.g.,][]{Vanderburg14,ForemanMackey15,Aigrain16} is in the origin of the information
 used in the de-trending. PLD uses \emph{local} information, present in a given star's pixels,
 to de-trend that star's light curve; alternative methods almost exclusively use \emph{global} information,
-derived from the behaviour of many stars across the detector, to accomplish the same thing. 
+derived from the behavior of many stars across the detector, to accomplish the same thing. 
 It is perhaps surprising that PLD works so well, given that the signal-to-noise ratio (SNR) of the regressors
 of the latter methods is \emph{necessarily} higher, since they are derived from hundreds to
 thousands of stars and thus contain information about the spacecraft motion at high fidelity.
 The fact that PLD outperforms other pipelines --- and in particular its ability to correct
 data collected during thruster firings --- suggests that local modes contribute significantly
-to the instrumental noise in $K2$ light curves. Local noise is due to inter- and intra-pixel
+to the instrumental noise in $K2$ light curves.} Local noise is due to inter- and intra-pixel
 variability and local pixel response function (PRF) behavior and is specific to the properties of 
 the detector at the particular location of the target, while global noise is due solely to 
 the motion of the spacecraft and is shared among all targets. Traditional methods can only
@@ -420,12 +424,13 @@ regressors are noisy, particularly for dimmer targets. This suggests that a comb
 both approaches that explicitly de-trends both local and global noise could substantially improve 
 the algorithm, especially for faint stars.
 
-A simple way of implementing this would be to include the two \emph{Kepler} motion vectors (the
+\note{A simple way of implementing this would be to include the two \emph{Kepler} motion vectors (the
 \texttt{POS\_CORR1} and \texttt{POS\_CORR2} fields in the target pixel files), as well as
 higher order products of these, in the regression, assigning each their own L2 priors ($\mathbf{\Lambda}$).
-While this approach works, in practice we obtain higher de-trending power by instead including the PLD
-vectors of bright neighboring targets in the regression; we dub this method \texttt{nPLD}, for \emph{n}eighboring
-\emph{PLD}. Our third-order design matrix (Equation~\ref{eq:design}) is now
+While this approach works}, in practice we obtain higher de-trending power by instead including the PLD
+vectors of a set of other targets located on the same CCD module in the regression; we dub this method \texttt{nPLD}, for \emph{n}eighboring
+\emph{PLD}, and discuss its implementation in \S\ref{sec:impl_neighboring}. Our third-order design 
+matrix (Equation~\ref{eq:design}) is now
 %
 \begin{align}
 \label{eq:design_nPLD}
@@ -473,10 +478,10 @@ we also used to fix the timescale and/or period of those kernel(s). We then ran 
 minimizer to optimize the overall amplitude of the GP. In practice, this worked reasonably
 well, but often failed for light curves dominated by high frequency stellar variability.
 After much experimentation, we decided to forego the kernel selection step in favor of
-using a single carefully optimized white kernel plus a Mat\'ern-3/2 kernel:
+using a single carefully optimized Mat\'ern-3/2 kernel with an added white noise term:
 %
 \begin{align}
-\mathbf{K}_{ij} = \sigma^2\delta_{ij} + \alpha \left(1 + \sqrt{3(t_i - t_j)^2}\right) e^{-\sqrt{3(t_i - t_j)^2}/\tau},
+\mathbf{K}_{ij} = \alpha \left(1 + \frac{\sqrt{3(t_i - t_j)^2}}{\tau}\right) e^{-\frac{\sqrt{3(t_i - t_j)^2}}{\tau}} + \sigma^2\delta_{ij},
 \end{align}
 %
 where the hyperparameters $\sigma$, $\alpha$, and $\tau$ are the white noise amplitude,
@@ -497,7 +502,7 @@ We discuss this further in \S\ref{sec:remarks}.
 \subsection{Breakpoints}
 \label{sec:impl_breakpoints}
 Because the instrumental noise properties are quite variable over the course of $K2$ 
-campaigns, we find a significant improvement in the de-trending power of our ridge
+campaigns, we find a significant improvement in the de-trending power of our regularized
 regression model when we subdivide light curves into two or three segments. This is in contrast to
 the PCA approach in Paper I, where we did not find it necessary to split the timeseries.
 For all campaigns except 4 and 7, we add a single breakpoint in the light curve near the
@@ -520,8 +525,8 @@ a small set of high SNR regressors that capture most of the spacecraft
 motion information. Moreover, since we employ a single prior for all $n^{th}$ order
 regressors, adding many foreign PLD vectors effectively results in an exchange of
 local for global de-trending power (\S\ref{sec:neighboring}) and in practice results
-in poorer quality light curves. After much experimenting, we find that the ideal number
-of neighboring stars to include in the design matrix is about ten. We therefore de-trend
+in poorer quality light curves. After much experimenting, we obtain the highest average 
+de-trending power when the number of neighboring stars is about ten. We therefore de-trend
 each $K2$ target with the aid of the PLD vectors of ten randomly selected bright 
 ($11 \leq \Kp \leq 13$) stars on the same detector module as the target. To minimize
 contamination of the target by outliers in its neighbors' fluxes, we linearly
@@ -545,7 +550,8 @@ the target star's de-trended light curve, resulting in potential false positive 
 detections down the line. The two cases relevant to $K2$ in which PLD could fail in such
 a way are for saturated stars and stars with bright contaminant sources in their
 apertures \citep{Luger16}. As we show in \S\ref{sec:impl_saturated} below, it is 
-straightforward to adapt PLD to work reliably for saturated stars. But while 
+straightforward to adapt PLD to work reliably for saturated stars, thereby circumventing
+this issue. But while 
 \texttt{EVEREST 2.0} is more robust against overfitting of crowded stars 
 (\S\ref{sec:remarks}), highly crowded apertures remain an issue for PLD. When de-trending
 with \texttt{nPLD}, we therefore select neighboring stars with no other known sources
@@ -559,21 +565,24 @@ in overfitted light curves with artificially low scatter and suppressed astrophy
 information (such as transits with significantly shallower depths). This happens because
 saturated pixels contain nearly no astrophysical information, as the signal
 overflows into adjacent pixels in the same column and is ultimately dumped into the
-pixels at the top and bottom of the bleed trails; these tail pixels ultimately contain more 
+pixels at the top and bottom of the bleed trails; these ``tail'' pixels ultimately contain more 
 astrophysical information than the other pixels in the aperture. Since PLD implicitly
 assumes that astrophysical information is constant across the aperture, the method
 breaks down for these stars, and PLD vectors from pixels in the saturated columns become capable
 of fitting out the astrophysical information in the rest of the aperture.
 
-We suggested in Paper I that collapsing saturated columns into single pixels --- by co-adding
+An obvious workaround is to simply discard pixels in saturated columns from the set of PLD 
+regressors. However, this does not work well in practice, since the remaining regressors
+often have much lower SNR than the SAP flux and thus have low de-trending power.
+We instead suggested in Paper I that collapsing saturated columns into single pixels --- by co-adding
 the fluxes in each of the pixels and treating the resulting timeseries as a single PLD pixel ---
-could negate the effect of saturation, since charge is conserved along the bleed trail. While
+could reduce the effect of saturation, since charge is conserved along the bleed trail. While
 this ensures PLD does not overfit, it leads to the loss of some of the information about the 
-vertical motion of the stellar PSF across the detector. This leads to significantly poorer
+vertical motion of the stellar point spread function (PSF) across the detector. This leads to significantly poorer
 de-trending, and therefore we did not employ this method in the first version of the pipeline.
 However, we find that including the PLD vectors of neighboring stars in the design matrix 
 (i.e., \texttt{nPLD}) effectively restores the information lost when saturated columns are 
-collapsed, leading to high quality de-trended light curves of saturated stars. 
+collapsed, leading to high quality de-trended light curves of saturated stars.
 
 In practice, we collapse all columns containing one or more pixels whose flux 
 comes within 10\% of (or exceeds)
@@ -599,11 +608,13 @@ eclipse is preserved and the instrumental signal is effectively removed.
        \caption{EPIC 202063160, a saturated \Kp = 9.2 campaign 0 eclipsing
        binary. Shown is a portion of the raw light curve (top), the light curve ``de-trended''
        with \texttt{EVEREST 1.0} (center), and the light curve de-trended with \texttt{EVEREST 2.0}
-       (bottom). The pixel image is shown at the right on a linear scale, with the adopted aperture
+       (bottom); the $y$ axis in each of these plots is the normalized flux.
+       The pixel image is shown at the right on a linear scale, with the adopted aperture
        contour indicated in red. The three columns highlighted in red contain saturated
        pixels. Despite a great improvement in the precision, \texttt{EVEREST 1.0} leads to severe
        overfitting, causing the eclipses to all but disappear. By collapsing saturated columns,
-       \texttt{EVEREST 2.0} correctly de-trends saturated stars without overfitting.}
+       \texttt{EVEREST 2.0} correctly de-trends saturated stars without overfitting.
+       \note{Re-run script for axis labels.}}
      \label{fig:saturated_star}
   \end{center}
 \end{figure}
@@ -746,7 +757,7 @@ overfitting. For each PLD order $n$ and for each value of $\lambda_n$,
 we split each light curve segment 
 into three roughly equal sections. For each pair of sections, we train the model on
 them and compute the model prediction in the third section (the validation set). We
-then compute the scatter $\sigma_v$ as the MAD of the
+then compute the scatter $\sigma_v$ as the median absolute deviation of the
 de-trended validation set after removing the GP prediction.
 
 We now have three $\sigma_v(\lambda_n)$ curves, one for each section. In general, the
@@ -760,7 +771,7 @@ values, provided it is smaller than the largest value of $\lambda_n$ at the mini
 of the three $\sigma_v$ curves. This process ensures that $\hat{\lambda}_n$ falls
 between the minima of the $\sigma_v$ curves with the smallest and largest value of
 $\lambda_n$, and that it leads to no more than 5\% overfitting in
-one of the chunks. We illustrate this procedure in Figure~\ref{fig:crossval}, where
+one of the segments. We illustrate this procedure in Figure~\ref{fig:crossval}, where
 we show $\sigma_v(\lambda_1)$ for each of the three light curve sections for
 EPIC 206103150. The red arrows indicate the minimum of each of the curves, and the
 dashed vertical line indicates the adopted $\hat{\lambda}_n$ based on a compromise
@@ -778,7 +789,7 @@ light curves. We report most of our results in terms of the proxy 6 hr CDPP of
 the de-trended light curves, which we calculate in the same way as we did
 in Paper I: we smooth the light curves with a Savitsky-Golay filter, clip
 outliers at 5$\sigma$, and compute the median standard deviation in 13-cadence
-chunks, normalized by $\sqrt{13}$.
+segments, normalized by $\sqrt{13}$.
 
 \subsection{Injection tests}
 \label{sec:inj}
@@ -841,9 +852,9 @@ details.
 \begin{figure}[hbt]
   \begin{center}
       \includegraphics[width=0.47\textwidth]{figures/ridge_reg.pdf}
-       \caption{6 hr CDPP comparison between de-trending with ridge regression (\texttt{rPLD}, this paper) and
+       \caption{6 hr CDPP comparison between de-trending with regularized regression (\texttt{rPLD}, this paper) and
                 de-trending with PCA (Paper I) for a sample of 2,700 randomly selected campaign 6
-                stars, as in Figure~\ref{fig:pPLD}. Ridge regression leads to a small CDPP improvement of 
+                stars, as in Figure~\ref{fig:pPLD}. Regularized regression leads to a small CDPP improvement of 
                 ${\sim}1$ to 5\%.}
      \label{fig:rPLD}
   \end{center}
@@ -863,7 +874,7 @@ its increased robustness to local overfitting (see \S\ref{sec:remarks}).
 \begin{figure}[hbt]
   \begin{center}
       \includegraphics[width=0.47\textwidth]{figures/nPLD.pdf}
-       \caption{6 hr CDPP comparison between PLD de-trending with ridge regression + neighboring targets 
+       \caption{6 hr CDPP comparison between PLD de-trending with regularized regression + neighboring targets 
                 (this paper) and standard PLD de-trending (Paper I) for the same sample of stars as in Figure~\ref{fig:rPLD}.
                 Each target was de-trended with its own PLD vectors plus those of ten random bright stars
                 on the same module. This method leads to a robust CDPP improvement of ${\sim}10$\% for bright ($\Kp \lesssim 13$) stars
@@ -887,7 +898,7 @@ smaller.
 \begin{figure}[hbt]
   \begin{center}
       \includegraphics[width=0.47\textwidth]{figures/cdpp_everest1_all.pdf}
-       \caption{CDPP comparison between \texttt{EVEREST 2.0} and \texttt{EVEREST 1.0} for all stars in campaigns 0--8.
+       \caption{CDPP comparison between \texttt{EVEREST 2.0} (using \texttt{nPLD}) and \texttt{EVEREST 1.0} for all stars in campaigns 0--8.
        As before, individual stars are plotted as blue points and the median CDPP is indicated by a black line; note
        the ${\sim}10-20$\% improvement over the previous version of the pipeline. Saturated
        stars are plotted as red points, with their median CDPP indicated by a dashed red line. The apparently
@@ -904,7 +915,7 @@ Figure~\ref{fig:cdpp_everest1_all} shows the CDPP comparison between \texttt{EVE
 \texttt{EVEREST 1.0} for all campaigns 0--8 stars. As in the example shown in Figure~\ref{fig:nPLD},
 \texttt{EVEREST 2.0} outperforms \texttt{EVEREST 1.0} by ${\sim}20\%$ for the faintest stars and by
 ${\sim}10\%$ for $\Kp \gtrsim 12$. For $11 \lesssim \Kp \lesssim 12$ the two pipelines yield
-comparable results, though ridge regression gives \texttt{EVEREST 2.0} a slight edge. Below
+comparable results, though regularized regression gives \texttt{EVEREST 2.0} a slight edge. Below
 $\Kp \approx 11$, $K2$ stars become saturated; these are plotted as red dots, and the median
 relative CDPP for saturated stars is indicated by the dashed red line. For these stars,
 \texttt{EVEREST 1.0} yields much lower CDPP --- for $\Kp \lesssim 10$, the CDPP is over a factor
@@ -987,12 +998,12 @@ campaigns 0--2, for which \texttt{EVEREST 2.0} outperforms \texttt{K2SFF} by nea
   \begin{center}
       \includegraphics[width=0.47\textwidth]{figures/outliers.pdf}
        \caption{Histograms showing the number of non-outlier data points per campaign for each
-        of four pipelines: \texttt{K2SFF} (gray), \texttt{K2SC} (orange), \texttt{EVEREST 1.0}
-        (red), and \texttt{EVEREST 2.0} (blue). To compute these, we remove all cadences 
+        of four pipelines: \texttt{K2SFF} (gray), \texttt{K2SC} (orange; campaigns 3--6 only), 
+        \texttt{EVEREST 1.0} (red), and \texttt{EVEREST 2.0} (blue). To compute these, we remove all cadences 
         with flagged \texttt{QUALITY} bits (excepting thruster fires) from all light curves, then
         smooth each light curve with a second order, 2-day Savitsky-Golay filter and perform iterative 
-        sigma clipping at 5$\sigma$ to remove the outliers. The number of remaining cadences is
-        for each light curve is then used to plot the histograms. Both versions of \texttt{EVEREST}
+        sigma clipping at 5$\sigma$ to remove the outliers. The number of remaining cadences in
+        each light curve is then used to plot the histograms. Both versions of \texttt{EVEREST}
         have more usable data points per campaign than the other pipelines. On average, 
         \texttt{EVEREST} light curves have ${\sim}200-300$ more non-outlier data points than \texttt{K2SFF} 
         and ${\sim}100$ more than \texttt{K2SC}.}
@@ -1038,10 +1049,12 @@ hours on average.
   \begin{center}
       \includegraphics[width=0.47\textwidth]{figures/short_cad.pdf}
        \caption{EPIC 201601162, a campaign 1 star observed in both long cadence and
-       short cadence modes. A portion of the raw light curve is displayed at the top,
-       and the de-trended light curve is shown in the center. In the bottom panel,
+       short cadence modes. A portion of the raw light curve is 
+       displayed at the top, and the de-trended light curve is shown in the center. In the bottom panel,
        we plot the down-binned de-trended short cadence light curve (black) and the
-       de-trended long cadence light curve (red). Short cadence \texttt{EVEREST 2.0}
+       de-trended long cadence light curve (red). The $y$ axis in each panel is the flux
+       in e$^{-}$/s.
+       Short cadence \texttt{EVEREST 2.0}
        light curves have lower CDPP than their long cadence counterparts.}
      \label{fig:short_cad}
   \end{center}
@@ -1059,14 +1072,14 @@ We show an example in Figure~\ref{fig:short_cad}, where we plot the light curves
 for EPIC 201601162 (raw short cadence at the top, de-trended short cadence in the
 center). In the bottom panel, we show both the down-binned short cadence de-trended light
 curve (black) and the long cadence de-trended light curve (red). The CDPP in the short
-cadence light curve is ${\sim}30\%$ that of the long cadence light curve.
+cadence light curve is ${\sim}30\%$ smaller than that of the long cadence light curve.
 
 As we discussed in \S\ref{sec:impl_shortcad}, one pitfall of our method for de-trending
 short cadence targets is the large number of breakpoints (${\sim}30$) we introduce
 in the light curve when computing the model. Overcomputing the model into adjacent
 segments and aligning the models at the breakpoints works very well for high
 SNR light curves but can often fail for light curves that are dominated by photon
-noise. This is the case for very faint stars ($\Kp \lesssim 17$) observed in
+noise. This is the case for very faint stars ($\Kp \gtrsim 17$) observed in
 short cadence mode, such as EPIC 201831393, which displays visible discontinuities
 at many of the breakpoints. Low SNR short cadence light curves may also have segments 
 with varying white noise amplitudes due to differences in the value of the $\mathbf{\Lambda}$
@@ -1076,7 +1089,7 @@ compute the model on a higher SNR signal, then predict onto the original short c
 data. Given the relatively small number of light curves for which this is an issue,
 we do not do this here.
 
-\subsection{CBVs}
+\subsection{Co-trending Basis Vectors}
 \label{sec:cbvs}
 One downside of the algorithm employed by \texttt{EVEREST} is that GP regression has trouble
 distinguishing between low frequency stellar variability and low frequency instrumental
@@ -1101,7 +1114,7 @@ properties.
          in each campaign to obtain the first (blue) and second (red) CBVs; we do this
          independently for each of the segments in each campaign.
          The first set of CBVs contain primarily linear trends with hook-like
-         features at the beginning or end of the chunks; the second set of CBVs are
+         features at the beginning or end of the segments; the second set of CBVs are
          dominated by quadratic or cubic trends. We correct all 
          light curves by simple
          linear regression with the first two CBVs.}
@@ -1118,27 +1131,28 @@ astrophysical variability originating from the brightest star(s) in each module.
 We found that computing the \texttt{SysRem} signals for the entire detector alleviated 
 this issue without compromising the de-trending power of the method.
 
-We separately apply \texttt{SysRem} to each light curve chunk, obtaining one
-co-trending basis vector (CBV) for each chunk of each campaign. We then subtract a linear
-fit of this CBV from each light curve and repeat the procedure to obtain a second CBV
-for each chunk of each campaign. In order to prevent the CBVs from fitting out or
+We separately apply \texttt{SysRem} to each light curve segment, obtaining one
+co-trending basis vector (CBV) for each segment of each campaign. We then subtract a linear
+fit of this CBV from each light curve and repeat the procedure to obtain additional CBVs
+for each segment of each campaign. In order to prevent the CBVs from fitting out or
 introducing high frequency signals in the light curves, we aggressively smooth them
 with a third order, 1000-cadence Savitsky-Golay filter. The results are shown in
-Figure~\ref{fig:cbv}. The first CBV for each chunk of each campaign is plotted in blue,
-and the second in red. As expected, the first CBV in each chunk is dominated by a linear trend with S-like
-hooks on either end. The second CBVs are predominantly quadratic or cubic.
+Figure~\ref{fig:cbv}. The first CBV for each segment of each campaign is plotted in blue,
+and the second in red. As expected, the first CBV in each segment is dominated by a linear trend with S-like
+hooks on either end. The second CBVs are predominantly quadratic or cubic. The remaining
+CBVs (not shown) are dominated by higher order trends.
 
-We fit all de-trended light curves with these CBVs by (ordinary) least squares 
-regression. We attempted to regress using the GP of each target, but there is 
-typically enough power in the GP model to strongly disfavor a CBV fit. In practice,
-our scheme works surprisingly well. Since we only use two CBVs for each chunk, and
-since these are dominated by very low order trends, the risk of fitting out true
-astrophysical variability is low. Nevertheless, light curves with modulation that
-happens to be in phase with the CBVs or stars that dim or brighten on ${\sim}90$ day
-timescales could be overfitted by this method. We defer a more careful treatment
-of these cases to future work and instead include both the PLD-de-trended flux 
-(\texttt{FLUX}) and the CBV-corrected flux (\texttt{FCOR}) in the \texttt{EVEREST 2.0}
-FITS files.
+For the purposes of generating the \texttt{EVEREST 2.0} catalog,
+we perform ordinary least squares regression to fit all de-trended light curves
+using only the first CBV (blue curves in the figure). We find that fitting with additional CBVs often helps
+to remove additional systematics --- in particular the hook-like features mentioned above
+--- but may lead to overfitting of true astrophysical variability in some light curves.
+We therefore include all 5 CBVs of each segment of each campaign in the \texttt{EVEREST 2.0} \texttt{FITS} files
+so that targets may be further corrected by the user on a case-by-case basis (see \S\ref{sec:using}).
+
+%We also attempted to regress using the GP of each target, but there is 
+%typically enough power in the GP model to strongly disfavor a CBV fit. In practice,
+%our scheme works surprisingly well. 
 
 \subsection{Sample light curves}
 \label{sec:sample}
@@ -1219,7 +1233,7 @@ campaigns the \texttt{EVEREST 2.0} CDPP is slightly higher for these stars. For 
 dimmer than $\Kp = 15$, the \texttt{EVEREST 2.0} CDPP is within a few tens of percent ---
 or less --- than that of \emph{Kepler}.
 
-\section{General Remarks}
+\section{Additional Remarks}
 \label{sec:remarks}
 
 \subsection{Variable stars}
@@ -1283,17 +1297,63 @@ basis.
 \begin{figure}[hbt]
   \begin{center}
       \includegraphics[width=0.47\textwidth]{figures/crowding.pdf}
-       \caption{Crowded EBs.}
+      \vspace*{-0.5in}
+       \caption{Five eclipsing binaries with significant contamination by bright nearby stars. The first 
+       two panels in each row show the folded \texttt{EVEREST 1.0} and \texttt{EVEREST 2.0} light curves, respectively,
+       and the third shows the POSS high resolution image of
+       the target postage stamp with our adopted aperture indicated in red. The magnitudes of the target
+       and its bright neighbors are also indicated. While \texttt{EVEREST 1.0} severely overfits the eclipses of
+       all five targets, \texttt{EVEREST 2.0} preserves the eclipse depths in all but the last one.}
      \label{fig:crowding}
   \end{center}
 \end{figure}
 
-{\color{red} I still need to run tests on a sample of crowded stars to see how the new
-version does. Ethan, do you have a list of planet candidate hosts that \texttt{EVEREST 1.0}
-screwed up? That will help me track down the crowded stars.}
+In Paper I we also showed how PLD is not suited to de-trend stars in excessively crowded fields,
+since the algorithm will often use pixels from contaminant sources to fit out the target star's astrophysical 
+signals. Directly addressing this issue is far less straightforward than mitigating the effects of saturation (\S\ref{sec:impl_saturated})
+or extreme astrophysical variability (\S\ref{sec:variables}), as it likely requires accurate modeling and
+subtraction of the PSFs of contaminant sources. However, in practice we find that our new de-trending
+algorithm is far more robust to overfitting when contaminant sources are present. This is in part
+due to the inclusion of PLD regressors from neighboring stars, which reduce the contribution from
+potentially contaminated pixels in the target aperture. Our new cross-validation scheme (\S\ref{sec:impl_crossval})
+also helps guard against the effects of crowding, since it is better at preventing localized 
+overfitting. Because of the large amplitude of the $K2$ spacecraft drift, the amount of contamination
+in the target aperture often varies considerably over the duration of the campaign, as nearby sources
+move in and out of the aperture. In \texttt{EVEREST 1.0} light curves, this resulted in a time-variable
+de-trending power --- and time-variable overfitting --- for crowded targets. As we discussed in \S\ref{sec:impl_crossval},
+our new cross-validation method strongly disfavors this behavior.
+
+In Figure~\ref{fig:crowding} we show the light curves of five eclipsing binaries whose crowded apertures
+resulted in severe overfitting in the \texttt{EVEREST 1.0} catalog. Shown are the light curves (flux versus time) folded
+on the period of the binary and centered on the primary eclipse for \texttt{EVEREST 1.0} (left) and \texttt{EVEREST 2.0} (center).
+The right panel shows the Palomar Optical Sky Survey\footnote{\url{http://stdatu.stsci.edu/cgi-bin/dss_form}} (POSS II)
+red filter image of the target postage stamp, where contaminant sources are clearly visible in each of the apertures (indicated
+by the red contours).
+
+The first three targets (EPIC 202072978, EPIC 202103762, and EPIC 218803648) have relatively bright
+contaminant sources centered on or near the edge of the aperture. In Paper I we explained how this
+was the ``worst case'' scenario for crowding, as it results in the largest spatial variation of 
+astrophysical information from the target across the aperture; as expected, \texttt{EVEREST 1.0}
+almost completely fits out their eclipses. \texttt{EVEREST 2.0}, on the other hand, achieves high
+de-trending power while preserving the eclipse shapes and depths seen in the raw light curves.
+The fourth target (EPIC 202733088) has a bright nearby source inside its aperture, separated by 
+less than a pixel. We discussed in Paper I how targets with co-located contaminants are typically
+unaffected by PLD overfitting, since the ratio of the two PSFs is roughly constant everywhere.
+However, in this case the contaminant is sufficiently detached to result in severe overfitting
+in the \texttt{EVEREST 2.0} light curve. As before, \texttt{EVEREST 2.0} correctly de-trends the light curve with
+no overfitting. The final target (EPIC 211685048) is an eclipsing binary with deep transits that are completely
+fit out in both versions of the pipeline. In this case, two roughly equal magnitude stars are
+fully contained in the aperture and separated by ${\sim}3$ pixels, causing PLD to fail despite
+the modifications to the algorithm.
+
+As in Paper I, we urge caution when using the \texttt{EVEREST} light curves of crowded targets,
+but note that in most of the cases known to us in which the previous version overfitted transits 
+and eclipses, \texttt{EVEREST 2.0} succeeds in removing the instrumental noise without overfitting
+astrophysical information. Future updates to the pipeline will include a more careful aperture
+selection, which can mitigate the effects of crowding for targets like EPIC 211685048.
 
 \subsection{Misc}
-{\color{red} EPIC 220651426: different de-trending power in each chunk. CBV tails.}
+\note{EPIC 220651426: different de-trending power in each segment. CBV tails.}
 
 \subsection{Aperture losses}
 \label{sec:losses}
@@ -1316,14 +1376,88 @@ present.
 
 \section{Using EVEREST}
 \label{sec:using}
+All \texttt{EVEREST 2.0} $K2$ light curves are available for download as \texttt{FITS} files
+from MAST.\footnote{\url{https://archive.stsci.edu/prepds/everest}} As with the 
+previous version, we urge users to interface with the catalog via the Python code,
+which can be installed following the instructions at 
+\url{https://github.com/rodluger/everest}. A detailed description of the data products
+and how to use the code is available on the \texttt{github} page. Below, we provide
+a brief outline of the \texttt{EVEREST} resources available online.
+
+\subsection{\texttt{FITS} Files}
+\label{sec:fits}
+Each \texttt{FITS} file contains six extensions. The primary (index \texttt{0}) 
+extension consists of a header with miscellaneous target information copied from
+the $K2$ target pixel file (TPF). The second (index \texttt{1}) extension contains
+a header and a binary table. The header stores miscellaneous
+information about the target and the settings used in the de-trending, such as the 
+GP hyperparameters and information on the neighboring targets used in the regression.
+The binary table stores arrays corresponding to the cadence number (\texttt{CADN}),
+the timestamp (\texttt{TIME}), the raw SAP flux (\texttt{FRAW}), the raw SAP flux errors
+(\texttt{FRAW\_ERR}), the PLD-de-trended flux (\texttt{FLUX}), the five CBV regressors
+(\texttt{CBV01} -- \texttt{CBV05}), and the de-trended flux with the CBV
+correction (\texttt{FCOR}). This extension also includes the
+original $K2$ \texttt{QUALITY} bit array, with four additional bits that signal
+cadences that were masked when computing the model: 
+%
+\begin{center}
+\begin{tabular}{ |l|l| }
+  \hline
+  \textbf{23} & Data point is flagged in the $K2$ TPF \\
+  \hline
+  \textbf{24} & Data point is \texttt{NaN} in the $K2$ TPF \\
+  \hline
+  \textbf{25} & Data point is an outlier \\
+  \hline
+  \textbf{26} & \emph{Not used} \\
+  \hline
+  \textbf{27} & Data point is in a transit (short cad. only) \\
+  \hline
+\end{tabular}
+\end{center}
+%
+Data flagged with bit \texttt{23}
+
+Data flagged with bit \texttt{24} is missing in the original TPF and can thus be safely
+ignored.
+
+While most of the data points flagged with bit \texttt{25} are poorly de-trended
+instrumental outliers, exoplanet transits may also be flagged with this bit
+
+The four remaining extensions include the PLD regressors, the target aperture, and additional
+information used internally by the Python code.
+
+\subsection{Data Validation Summaries}
+\label{sec:dvs}
+Each target in the catalog also has an associated data validation summary (DVS), a
+\texttt{PDF} document showing the raw, de-trended, and CBV-corrected light curves, 
+as well as cross-validation diagnostic plots such as those in Figure~\ref{fig:crossval}
+and a high resolution POSS image of the target aperture like those shown in 
+Figure~\ref{fig:crowded}.
+
+\subsection{Python Code}
+\label{sec:python}
+The \texttt{EVEREST} code can be installed using the package managing system \texttt{pip}:
+%
+\begin{lstlisting}[language=bash]
+pip install everest-pipeline
+\end{lstlisting}
+%
+or directly from source on the project \texttt{github} page. The primary way of interfacing
+with the catalog is to instantiate an \texttt{Everest} object. The following
 
 \begin{lstlisting}[language=Python]
 import everest
 star = everest.Everest(201367065)
+\end{lstlisting}
+
+\begin{lstlisting}[language=Python]
 star.mask_planet(1980.42, 10.054)
 star.compute()
 star.plot()
 \end{lstlisting}
+
+\note{Some discussion of how to deal with remaining outliers/flagged cadences.}
 
 \section{Conclusions}
 \label{sec:conclusions}
@@ -1362,15 +1496,21 @@ recovers \emph{Kepler} photometry on average to $\Kp \approx 14.5$, and past
 $\Kp = 15$ for some campaigns. For dimmer stars, the CDPP is within a few tens
 of percent of that of \emph{Kepler}. \texttt{EVEREST} light curves should thus enable 
 continued high-precision transiting exoplanet and stellar variability science 
-for the vast majority of \emph{K2} stars as if they had been observed by the original
+for the vast majority of $K2$ stars as if they had been observed by the original
 four-wheeled mission.
 
 The \texttt{EVEREST 2.0} catalog of de-trended light curves is publicly available
-at \url{https://archive.stsci.edu/prepds/everest/}.
+at \url{https://archive.stsci.edu/prepds/everest}.
 As with the previous version of the code, \texttt{EVEREST 2.0} is open source under
-the MIT license and available at \url{https://github.com/rodluger/everest}, with a 
-static release of the code used to generate the catalog archived at 
-{\color{red}\url{http://dx.doi.org/XX.XXX/XXXXX}}. The reader is encouraged to use this code
+the MIT license and available at \url{https://github.com/rodluger/everest}.
+%
+% -*-*- TODO -*-*-
+%
+%, with a static release of the code used to generate the catalog archived at 
+%\note{\url{http://dx.doi.org/XX.XXX/XXXXX}}. 
+%
+%
+The reader is encouraged to use this code
 to interface with the \texttt{EVEREST} catalog and to customize the de-trending
 of targets of interest, particularly for masking transits to remove biases in
 the depth due to overfitting. We have implemented each of the PLD models discussed
@@ -1383,7 +1523,7 @@ on the \texttt{github} page.
 We would like to thank Benjamin Pope and Tsevi Mazeh
 for their useful comments and suggestions.
 R.L., R.B., and E.A. acknowledge support from NASA grant
-NNX14AK26G and from the NASA Astrobiology Institute’s
+NNX14AK26G and from the NASA Astrobiology Institute's
 Virtual Planetary Laboratory Lead Team, funded through
 the NASA Astrobiology Institute under solicitation
 NNH12ZDA002C and Cooperative Agreement Number
