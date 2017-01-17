@@ -45,7 +45,6 @@
 
 \newcommand{\noop}[1]{}
 \newcommand{\note}[1]{{\color{red} #1}}
-\newcommand{\cn}{\note{(citation needed)\ }}
 \newcommand{\unit}[1]{\ensuremath{\, \mathrm{#1}}}
 \newcommand{\mearth}{\unit{M_\oplus}}
 \newcommand{\rearth}{\unit{R_\oplus}}
@@ -104,21 +103,12 @@ as $K2$, using the solar wind and periodic thruster firings to mitigate drift
 poorer than that of the original \emph{Kepler} mission. In order to enable
 continuing precision science with $K2$, numerous pipelines have been developed
 \citep[e.g.,][]{VanderburgJohnson14,Armstrong15,Lund15,Crossfield15,ForemanMackey15,Huang15,Aigrain16},
-many producing light curves with precision approaching that of \emph{Kepler}.
-\note{Despite significant differences in their implementation, all of these pipelines
-regress (whether implicitly or explicitly) on information relating to the motion
-of the spacecraft as determined from the collective behavior of hundreds or thousands
-of stars on the CCD. Since this information is encoded at high signal-to-noise in
-the set of all stars on the detector, these methods excel at mitigating the
-instrumental effects due to the spacecraft motion. However, inhomogeneities in the
-detector at the pixel level lead to inter- and intra-pixel sensitivity variations
-that distort astrophysical information in ways that these methods cannot fully
-correct for, particularly when these variations are different across different
-pixels or in different locations on the detector.}
+many producing light curves with precision approaching that of \emph{Kepler} for
+bright stars.
 
 In \cite{Luger16} (henceforth Paper I), we developed the first version of our 
-pipeline, \texttt{EVEREST} (EPIC Variability Extraction and Removal for Exoplanet
-Science Targets), which regresses exclusively on \emph{local} information.
+$K2$ pipeline, \texttt{EVEREST} (EPIC Variability Extraction and Removal for Exoplanet
+Science Targets).
 We employed a variant of pixel level decorrelation (PLD) based on the method of \cite{Deming15},
 a data-driven approach that uses a star's own pixel-level light curve to remove
 instrumental effects. We showed that \texttt{EVEREST} recovered the original \emph{Kepler} 
@@ -215,7 +205,9 @@ A common regression method for ill-posed problems is regularization, in which a 
 on the values of the weights $\mathbf{w}$. Since overfitting occurs when $\mathbf{w}$ becomes very
 large, regularization recasts the problem by adding a penalty term to the likelihood that 
 increases with increasing $|\mathbf{w}|$. While many forms of regularization exist, we focus on
-L2 regularization, since it has an analytic solution. L2 regularization is mathematically equivalent to
+L2 regularization, since it has an analytic solution. Recently, \cite{Wang16} used L2
+regularization in a ``causal pixel model'' to de-trend light curves from the original \emph{Kepler}
+mission. L2 regularization is mathematically equivalent to
 placing a Gaussian prior on each of the weights $\mathbf{w}$, so that the posterior likelihood function becomes
 %
 \begin{align}
@@ -237,7 +229,7 @@ which we choose to be diagonal for simplicity and for computational efficiency:
 Each element $\lambda_n^2$ in $\mathbf{\Lambda}$ is the variance of the 
 zero-mean Gaussian prior on the weight of the corresponding column of the design matrix, 
 $\mathbf{X}_{*,n}$. In practice we find that if we choose the $\lambda_{n}$ correctly, this model has 
-a higher predictive power than the PCA model adopted in Paper I. \note{Cite Wang et al. (2016).}
+a higher predictive power than the PCA model adopted in Paper I.
 
 Given this formulation, our task is to find the weights $\mathbf{\hat{w}}$ that maximize 
 the posterior probability 
@@ -404,31 +396,25 @@ is the inversion.
 
 \subsection{Neighboring Stars (\texttt{nPLD})}
 \label{sec:neighboring}
-\note{The principal difference between PLD and other methods used to correct $K2$ light curves
-\citep[e.g.,][]{Vanderburg14,ForemanMackey15,Aigrain16} is in the origin of the information
-used in the de-trending. PLD uses \emph{local} information, present in a given star's pixels,
-to de-trend that star's light curve; alternative methods almost exclusively use \emph{global} information,
-derived from the behavior of many stars across the detector, to accomplish the same thing. 
-It is perhaps surprising that PLD works so well, given that the signal-to-noise ratio (SNR) of the regressors
-of the latter methods is \emph{necessarily} higher, since they are derived from hundreds to
-thousands of stars and thus contain information about the spacecraft motion at high fidelity.
-The fact that PLD outperforms other pipelines --- and in particular its ability to correct
-data collected during thruster firings --- suggests that local modes contribute significantly
-to the instrumental noise in $K2$ light curves.} Local noise is due to inter- and intra-pixel
-variability and local pixel response function (PRF) behavior and is specific to the properties of 
-the detector at the particular location of the target, while global noise is due solely to 
-the motion of the spacecraft and is shared among all targets. Traditional methods can only
-correct the latter (but do so extremely well). PLD excels at correcting the former. While
-PLD certainly removes the noise introduced by the spacecraft motion (i.e., global noise), its
-regressors are noisy, particularly for dimmer targets. This suggests that a combination of
-both approaches that explicitly de-trends both local and global noise could substantially improve 
-the algorithm, especially for faint stars.
+One of the downsides of PLD is that the regressors used in the linear model tend to be noisy.
+This is particularly a problem for faint targets, whose PLD vectors are dominated by photon
+noise. Their light is also distributed over fewer pixels, resulting in a smaller set of
+vectors on which to regress. The effect of this is evident in Figure~10 of Paper I, which shows how
+\texttt{EVEREST 1.0} light curves for faint ($\Kp \gtrsim 15$) stars are significantly noisier 
+than those of the original \emph{Kepler} mission. This decrease in de-trending power at the
+faint end affects most other $K2$ pipelines as well, as those usually regress on information
+derived (either directly or indirectly) from the motion of the stellar image across the detector, which is similarly
+noisy.
 
-\note{A simple way of implementing this would be to include the two \emph{Kepler} motion vectors (the
-\texttt{POS\_CORR1} and \texttt{POS\_CORR2} fields in the target pixel files), as well as
-higher order products of these, in the regression, assigning each their own L2 priors ($\mathbf{\Lambda}$).
-While this approach works}, in practice we obtain higher de-trending power by instead including the PLD
-vectors of a set of other targets located on the same CCD module in the regression; we dub this method \texttt{nPLD}, for \emph{n}eighboring
+While the spacecraft motion (the dominant source of instrumental noise in $K2$) is imprinted at relatively 
+low signal-to-noise ratio (SNR) on the light curves
+of any one star, the collective light curves of all the stars on the detector encode
+this information at very high SNR. Therefore, a straightforward way to improve the performance of PLD
+for faint targets is to include this information in the design matrix. To this end, in \texttt{EVEREST 2.0} we
+incorporate the PLD vectors of a set of other targets located on the same CCD module as the target of interest
+when performing the regression.
+We dub
+this method \texttt{nPLD}, for \emph{n}eighboring
 \emph{PLD}, and discuss its implementation in \S\ref{sec:impl_neighboring}. Our third-order design 
 matrix (Equation~\ref{eq:design}) is now
 %
@@ -461,11 +447,11 @@ described in Paper I; for more recent campaigns, the background is removed by th
 team.
 
 Next, we perform iterative sigma clipping to identify and mask outliers at 5$\sigma$.
-During each iteration, we compute the linear, unregularized PLD model and smooth it with
+During each iteration, we compute the linear (unregularized) PLD model and smooth it with
 a Savitsky-Golay filter \citep{SavitskyGolay64}, then identify outliers based on a 
 median absolute deviation (MAD) cut. We implement this outlier-clipping step at the
 beginning of each cross-validation step (\S\ref{sec:impl_crossval}), each time computing
-the model with a higher PLD order, to progressively refine the outlier mask.
+the model with a higher (regularized) PLD order, to progressively refine the outlier mask.
 
 \subsection{GP Optimization}
 \label{sec:impl_gp}
@@ -523,8 +509,9 @@ In principle, the larger the number of neighboring PLD vectors we include in the
 regressors significantly increases computing time, so we would like to instead select
 a small set of high SNR regressors that capture most of the spacecraft
 motion information. Moreover, since we employ a single prior for all $n^{th}$ order
-regressors, adding many foreign PLD vectors effectively results in an exchange of
-local for global de-trending power (\S\ref{sec:neighboring}) and in practice results
+regressors, adding many foreign PLD vectors effectively dilutes the contribution of
+the target's own PLD vectors, which are the only ones that can correct instrumental
+signals arising from local pixel sensitivity variations, and in practice results
 in poorer quality light curves. After much experimenting, we obtain the highest average 
 de-trending power when the number of neighboring stars is about ten. We therefore de-trend
 each $K2$ target with the aid of the PLD vectors of ten randomly selected bright 
@@ -613,8 +600,7 @@ eclipse is preserved and the instrumental signal is effectively removed.
        contour indicated in red. The three columns highlighted in red contain saturated
        pixels. Despite a great improvement in the precision, \texttt{EVEREST 1.0} leads to severe
        overfitting, causing the eclipses to all but disappear. By collapsing saturated columns,
-       \texttt{EVEREST 2.0} correctly de-trends saturated stars without overfitting.
-       \note{Re-run script for axis labels.}}
+       \texttt{EVEREST 2.0} correctly de-trends saturated stars without overfitting.}
      \label{fig:saturated_star}
   \end{center}
 \end{figure}
@@ -1125,7 +1111,7 @@ properties.
 We apply \texttt{SysRem} to all of the light curves in each campaign, weighting each one
 by the quadrature sum of the flux measurement errors and the white noise component of its
 GP. Given known correlations between instrumental signals and spatial position on the
-detector \citep[e.g.,][]{Petigura12}, we attempted to apply \texttt{SysRem} individually
+detector \citep[e.g.,][]{Petigura12,Wang16}, we attempted to apply \texttt{SysRem} individually
 on each CCD module, but found that the recovered signals were often dominated by
 astrophysical variability originating from the brightest star(s) in each module. 
 We found that computing the \texttt{SysRem} signals for the entire detector alleviated 
@@ -1352,9 +1338,6 @@ and eclipses, \texttt{EVEREST 2.0} succeeds in removing the instrumental noise w
 astrophysical information. Future updates to the pipeline will include a more careful aperture
 selection, which can mitigate the effects of crowding for targets like EPIC 211685048.
 
-\subsection{Misc}
-\note{EPIC 220651426: different de-trending power in each segment. CBV tails.}
-
 \subsection{Aperture Losses}
 \label{sec:losses}
 As we have demonstrated, column-collapsed PLD works extremely well for saturated stars,
@@ -1373,6 +1356,8 @@ occur because spacecraft drift results in aperture losses only during parts of t
 campaign. We therefore encourage those using the \texttt{EVEREST} catalog to inspect
 the postage stamps of extremely bright stars to ensure that aperture losses are not
 present.
+%
+%EPIC 220651426: different de-trending power in each segment.
 
 \section{Using EVEREST}
 \label{sec:using}
@@ -1460,7 +1445,7 @@ star = everest.Everest(EPIC)
 where \texttt{EPIC} is the EPIC number of the target. These lines download the
 target's \texttt{FITS} file and populate
 the \texttt{star} object with the de-trending information and light curve arrays
-(\texttt{time}, \texttt{flux}, \texttt{fcor}).
+(\texttt{time}, \texttt{flux}, \texttt{fcor}, etc.).
 The \texttt{QUALITY} flags \texttt{23}, \texttt{24}, \texttt{25}, and \texttt{27} are 
 used to generate the \texttt{badmask}, \texttt{nanmask}, \texttt{outmask}, and 
 \texttt{transitmask} arrays, respectively; these arrays contain the indices of all
@@ -1542,7 +1527,7 @@ the MIT license and available at \url{https://github.com/rodluger/everest}.
 % -*-*- TODO -*-*-
 %
 %, with a static release of the code used to generate the catalog archived at 
-%\note{\url{http://dx.doi.org/XX.XXX/XXXXX}}. 
+%\url{http://dx.doi.org/XX.XXX/XXXXX}. 
 %
 %
 The reader is encouraged to use this code
