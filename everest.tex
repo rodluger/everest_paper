@@ -55,7 +55,7 @@
 \newcommand{\avg}[1]{\langle #1 \rangle}
 \newcommand{\bavg}[1]{\bigg\langle #1 \bigg\rangle}
 \newcommand{\tab}[1]{\hspace{.2\textwidth}\rlap{#1}}
-\newcommand{\Kp}{\ensuremath{K_\mathrm{p}}}
+\newcommand{\Kp}{\ensuremath{Kp}}
 \DeclareMathOperator*{\argmin}{arg\,min}
 
 \shorttitle{EVEREST 2.0}
@@ -946,7 +946,7 @@ all unsaturated stars. For $K_p \approx 9$, \texttt{K2SC} slightly overperforms
   \begin{center}
       \includegraphics[width=0.47\textwidth]{figures/cdpp_everest1.pdf}
        \caption{Similar to Figure~\ref{fig:cdpp_everest1_all}, but showing a CDPP comparison between 
-       \texttt{EVEREST 2.0} and \texttt{EVEREST 1.0} for each of the first 8 $K2$ campaigns.}
+       \texttt{EVEREST 2.0} and \texttt{EVEREST 1.0} for each of the first 9 $K2$ campaigns.}
      \label{fig:cdpp_everest1}
   \end{center}
 \end{figure}
@@ -955,7 +955,7 @@ all unsaturated stars. For $K_p \approx 9$, \texttt{K2SC} slightly overperforms
   \begin{center}
       \includegraphics[width=0.47\textwidth]{figures/cdpp_k2sff.pdf}
        \caption{Similar to Figure~\ref{fig:cdpp_k2sff_all}, but showing a CDPP comparison between 
-       \texttt{EVEREST 2.0} and \texttt{K2SFF} for each of the first 8 $K2$ campaigns.}
+       \texttt{EVEREST 2.0} and \texttt{K2SFF} for each of the first 9 $K2$ campaigns.}
      \label{fig:cdpp_k2sff}
   \end{center}
 \end{figure}
@@ -964,7 +964,7 @@ all unsaturated stars. For $K_p \approx 9$, \texttt{K2SC} slightly overperforms
   \begin{center}
       \includegraphics[width=0.47\textwidth]{figures/cdpp_k2sc.pdf}
        \caption{Similar to Figure~\ref{fig:cdpp_k2sc_all}, but showing a CDPP comparison between 
-       \texttt{EVEREST 2.0} and \texttt{K2SC} for each of the first 8 $K2$ campaigns.}
+       \texttt{EVEREST 2.0} and \texttt{K2SC} for each of the first 9 $K2$ campaigns.}
      \label{fig:cdpp_k2sc}
   \end{center}
 \end{figure}
@@ -1012,7 +1012,7 @@ for each of the four pipelines (\texttt{K2SFF}, \texttt{K2SC}, \texttt{EVEREST 1
 bits 1-9, 11-14, and 16-17, we smoothed each light curve with a Savitsky-Golay filter and
 performed iterative sigma clipping to remove all 5$\sigma$ outliers. In Figure~\ref{fig:outliers}
 we plot histograms of the number of remaining data points for all stars in each of the first
-nine campaigns. As expected, both \texttt{EVEREST 1.0} and \texttt{EVEREST 2.0} have, on 
+9 campaigns. As expected, both \texttt{EVEREST 1.0} and \texttt{EVEREST 2.0} have, on 
 average, 100--300 more usable data points than the other two pipelines. This roughly
 corresponds to the number of thruster firings per campaign, as these happen every 6--12
 hours on average.
@@ -1095,7 +1095,7 @@ properties.
 \begin{figure}[hbt]
   \begin{center}
       \includegraphics[width=0.4\textwidth]{figures/cbv.pdf}
-      \caption{Co-trending Basis Vectors (CBVs) for each of the first nine campaigns. 
+      \caption{Co-trending Basis Vectors (CBVs) for each of the first 9 campaigns. 
          We apply \texttt{SysRem} to all de-trended light curves 
          in each campaign to obtain the first (blue) and second (red) CBVs; we do this
          independently for each of the segments in each campaign.
@@ -1209,7 +1209,7 @@ of 5 lower CDPP than \texttt{K2SFF}, as well as considerably fewer outliers.
 
 In Figures~\ref{fig:cdpp_kepler} and \ref{fig:cdpp_kepler_all} we compare the \texttt{EVEREST 2.0}
 photometric precision to that of the original \emph{Kepler} mission. Figure~\ref{fig:cdpp_kepler}
-shows the CDPP as a function of $\Kp$ for each of the first nine $K2$ campaigns and 
+shows the CDPP as a function of $\Kp$ for each of the first 9 $K2$ campaigns and 
 Figure~\ref{fig:cdpp_kepler_all} shows the comparison for all $K2$ stars. Because of differences
 in the raw photometric precision and in the stellar populations across the campaigns, the
 results are variable, but for all campaigns except 0, 2 and 7, we recover the original \emph{Kepler}
@@ -1326,7 +1326,7 @@ The fourth target (EPIC 202733088) has a bright nearby source inside its apertur
 less than a pixel. We discussed in Paper I how targets with co-located contaminants are typically
 unaffected by PLD overfitting, since the ratio of the two PSFs is roughly constant everywhere.
 However, in this case the contaminant is sufficiently detached to result in severe overfitting
-in the \texttt{EVEREST 2.0} light curve. As before, \texttt{EVEREST 2.0} correctly de-trends the light curve with
+in the \texttt{EVEREST 1.0} light curve. As before, \texttt{EVEREST 2.0} correctly de-trends the light curve with
 no overfitting. The final target (EPIC 211685048) is an eclipsing binary with deep transits that are completely
 fit out in both versions of the pipeline. In this case, two roughly equal magnitude stars are
 fully contained in the aperture and separated by ${\sim}3$ pixels, causing PLD to fail despite
