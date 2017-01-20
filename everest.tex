@@ -1090,7 +1090,9 @@ residual instrumental signals. After some experimentation, we decided to use the
 \texttt{SysRem} algorithm \citep{Tamuz05}, which identifies and removes signals shared by many
 light curves. \texttt{SysRem} is similar to PCA but allows for weighting of the input
 signals and is therefore better suited to dealing with light curves of varying noise
-properties.
+properties. Our approach is similar to the presearch data conditioning (PDC) algorithm
+of the \emph{Kepler} pipeline, which uses co-trending basis vectors from many stars
+on the detector to remove common instrumental signals from light curves \citep{Stumpe12,Smith12}.
 
 \begin{figure}[hbt]
   \begin{center}
