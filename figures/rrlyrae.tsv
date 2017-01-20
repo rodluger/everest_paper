@@ -1,7 +1,7 @@
 # These are the 100 K2 stars with the highest RR Lyrae score according to                                                                
 # Armstrong et al. (2015), obtained from https://archive.stsci.edu/k2/hlsp/k2varcat/search.php                                                                
 #         
-#  0    = Light curve if overfitted or de-trending introduces spurious signals
+#  0    = Light curve is overfitted or de-trending introduces spurious signals
 #  1    = Star is properly de-trended, preserving amplitude of variability         
 #  2    = Bad fit, but first order PLD does OK (EVER2 only)
 #  3    = Light curve does not exist (K2SC only)     
