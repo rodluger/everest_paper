@@ -1,11 +1,3 @@
 # everest 2.0 paper
 
-To compile the PDF:
-
-```
-./make_figures.sh
-pdflatex everest
-bibtex everest
-pdflatex everest
-pdflatex everest
-```
+This is the LaTeX source and Python code used to generate the figures in the [EVEREST 2.0](https://github.com/rodluger) paper (*AJ*, submitted).
