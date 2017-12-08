@@ -58,39 +58,43 @@
 \newcommand{\Kp}{\ensuremath{Kp}}
 \DeclareMathOperator*{\argmin}{arg\,min}
 \newcommand{\edited}[1]{{\color{red} #1}}
+\newenvironment{edits}{\color{red}}{\color{black}}
 
 \shorttitle{EVEREST 2.0}
-\shortauthors{Luger et al. 2016}
+\shortauthors{Luger et al. 2017}
 
 \begin{document}
 
-\title{An update to the EVEREST K2 pipeline:\\ Short cadence, saturated stars, and Kepler-like photometry down to $\Kp = 15$}
-\author{Rodrigo Luger\altaffilmark{1,2}, Ethan Kruse\altaffilmark{1}, Daniel Foreman-Mackey\altaffilmark{1,3},\\
+\title{An update to the EVEREST K2 pipeline:\\ Short cadence, saturated stars, and Kepler-like\\ photometry down to $\Kp = 15$}
+\author{Rodrigo Luger\altaffilmark{1,2}, Ethan Kruse\altaffilmark{1}, Daniel Foreman-Mackey\altaffilmark{3},\\
 Eric Agol\altaffilmark{1,2}, Nicholas Saunders\altaffilmark{1}}
 \altaffiltext{1}{Astronomy Department, University of Washington, Box 351580, Seattle, WA 98195, USA; \href{mailto:rodluger@uw.edu}{rodluger@uw.edu}}
 \altaffiltext{2}{Virtual Planetary Laboratory, Seattle, WA 98195, USA}
-\altaffiltext{3}{Sagan Fellow}
+\altaffiltext{3}{Center for Computational Astronomy, Flatiron Institute, New York, NY 10010, USA}
 
 \begin{abstract}
 We present an update to the \texttt{EVEREST} $K2$ pipeline that addresses various limitations
-in the previous version and improves the photometric precision of the de-trended light curves.
-We develop a fast regularization scheme for third order pixel level decorrelation (PLD) and
-adapt the algorithm to include the PLD vectors of neighboring stars to enhance the predictive
+in the previous version and improves the photometric precision of the light curves.
+We develop a fast regularization scheme for pixel level decorrelation (PLD) and
+adapt the algorithm to include the PLD vectors of other stars to enhance the predictive
 power of the model and minimize overfitting, particularly for faint stars. We also modify PLD to work for saturated
-stars and improve its performance on extremely variable stars. On average, \texttt{EVEREST 2.0}
-light curves have 10--20\% higher photometric precision than those in the previous version,
+stars and improve its performance on variable stars, \edited{although some high-frequency variables may still
+suffer from overfitting}. On average, \texttt{EVEREST 2.0}
+light curves have 10--20\% higher photometric precision than those in version 1,
 yielding the highest precision light curves at all $\Kp$ magnitudes of any publicly available $K2$
 catalog. For most $K2$ campaigns, we recover the original \emph{Kepler} precision to at least
 $\Kp = 14$, and to at least $\Kp = 15$ for campaigns 1, 5, 6, \edited{and 13}. We also de-trend \edited{most} short
 cadence targets observed by $K2$, obtaining even higher photometric precision for these stars.
+\edited{Like all aggressive, flexible models, \texttt{EVEREST} is prone to overfitting,
+and may cause a decrease in transit depths by ${\sim}10\%$; we urge users to mask
+signals of interest using our open-source software, which we show removes this bias.}
 Light curves for campaigns 0--8 \edited{and 10--13} are available online in the \texttt{EVEREST} catalog, which
-will be continuously updated with future campaigns.
-\texttt{EVEREST 2.0} is open source and is coded in a general framework that can be applied
-to other photometric surveys, including \emph{Kepler} and the upcoming \emph{TESS} mission.\\
-%\vspace*{0.7in}
+will be updated with future campaigns.
+\texttt{EVEREST 2.0} is open source and is coded in a framework that can be \edited{adapted}
+to other photometric surveys, including \emph{Kepler} and the upcoming \emph{TESS} mission.\\[0.1in]
 \end{abstract}
 
-\keywords{catalogs --- planets and satellites: detection --- techniques: photometric}
+\keywords{catalogs --- planets and satellites: detection --- techniques: photometric\\[0.2in]}
 
 \section{Introduction}
 \label{sec:intro}
@@ -127,7 +131,7 @@ power for these targets.
 The paper is organized as follows: in \S\ref{sec:model} we derive the mathematical
 framework of the \texttt{EVEREST 2.0} model, and in \S\ref{sec:implementation} we describe
 the implementation of our pipeline in detail. We present our results in \S\ref{sec:results}
-and some additional remarks in \S\ref{sec:remarks}. In \S\ref{sec:using} we briefly discuss how
+and additional remarks in \S\ref{sec:remarks}. In \S\ref{sec:using} we discuss how
 to use the \texttt{EVEREST} catalog and code, and in \S\ref{sec:conclusions} we
 summarize the work.
 
@@ -654,6 +658,8 @@ curves \emph{before} the cross-validation step. Since only deep transits are lik
 bias the cross-validation, and since the number of short cadence light curves in each
 campaign is relatively small, these can easily be identified by inspection.
 
+\pagebreak
+
 \subsection{Cross-validation}
 \label{sec:impl_crossval}
 The principal step in the de-trending process is determining the prior amplitudes $\lambda_n$ in
@@ -720,7 +726,7 @@ producing the \texttt{EVEREST 2.0} catalog.
   \begin{center}
       \includegraphics[width=0.3\textwidth]{figures/crossval.pdf}
        \caption{Cross-validation procedure for first order PLD on EPIC 206103150
-       (WASP-47 e), a campaign 3 planet host. Shown is the scatter $\sigma_v$ in the validation
+       (WASP-47), a campaign 3 planet host. Shown is the scatter $\sigma_v$ in the validation
        set (red) and the scatter in the training set (blue) as a function of $\lambda_1$,
        the prior amplitude for the first order PLD weights, for each of three light curve
        sections; the mean scatter is shown at the bottom. Red arrows indicate the minima
@@ -774,9 +780,17 @@ third. This results in a more conservative cross-validation process than in Pape
 
 \section{Results}
 \label{sec:results}
+\edited{We de-trended all stars in campaigns 0--8 and 10--13 with \texttt{nPLD} to produce the
+\texttt{EVEREST 2.0} catalog. Campaign 9 is currently not available in the catalog
+because of the extreme crowding toward the galactic center, which can seriously affect
+the performance of PLD (see \S\ref{sec:crowded}). Campaigns 10 and 11 were divided into
+two sub-campaigns, which we refer to as 101 and 102 and 111 and 112, respectively, following
+the \emph{Kepler} team's convention. Since campaign 101 is extremely short, it is
+not included in the catalog. However, any target not present in the \texttt{EVEREST 2.0}
+catalog may easily be de-trended by the user via the \texttt{DetrendFITS} function
+(see \S\ref{sec:custom_detrending}).}
 
-We de-trended all campaigns 0--8 stars with \texttt{nPLD} to produce the
-\texttt{EVEREST 2.0} catalog. Below we report our results, starting with
+Below we report our results, starting with
 injection/recovery tests and a comparison of \texttt{rPLD} and \texttt{nPLD},
 followed by comparisons with other pipelines and the original \emph{Kepler}
 light curves. We report most of our results in terms of the proxy 6 hr CDPP of
@@ -840,9 +854,8 @@ are masked. As before, we urge those using \texttt{EVEREST} light curves contain
 transits or eclipses to re-compute the model with those features masked. This process
 is quick and straightforward --- refer to the \texttt{EVEREST 2.0} documentation for
 details.
-\footnote{\url{https://github.com/rodluger/everest}}
+\footnote{\edited{\url{https://rodluger.github.io/everest}}}\\[0em]
 
-\subsection{\texttt{rPLD}}
 \begin{figure}[hbt]
   \begin{center}
       \includegraphics[width=0.47\textwidth]{figures/ridge_reg.pdf}
@@ -854,6 +867,7 @@ details.
   \end{center}
 \end{figure}
 
+\subsection{\texttt{rPLD}}
 In Figure~\ref{fig:rPLD} we plot a comparison of the CDPP values obtained with \texttt{rPLD}
 and \texttt{EVEREST 1.0} for our sample set of 2,700 campaign 6 stars. As before, the $y$
 axis corresponds to the normalized relative CDPP of each model, with negative values
@@ -862,9 +876,8 @@ relative CDPP is indicated as a black line. \texttt{rPLD} outperforms \texttt{EV
 Kepler magnitudes by ${\sim}1-6\%$ on average. However, the scatter at any value of
 $\Kp$ is quite large, and the two models are roughly comparable for bright stars. As we
 argued in \S\ref{sec:impl_crossval}, the most important feature of \texttt{rPLD} is
-its increased robustness to local overfitting (see \S\ref{sec:remarks}).
+its increased robustness to local overfitting (see \S\ref{sec:remarks}).\\[0em]
 
-\subsection{\texttt{nPLD}}
 \begin{figure}[hbt]
   \begin{center}
       \includegraphics[width=0.47\textwidth]{figures/nPLD.pdf}
@@ -877,6 +890,7 @@ its increased robustness to local overfitting (see \S\ref{sec:remarks}).
   \end{center}
 \end{figure}
 
+\subsection{\texttt{nPLD}}
 The greatest improvement in the CDPP comes when neighboring stars' PLD vectors are included
 in the design matrix. In Figure~\ref{fig:nPLD} we plot the CDPP comparison between \texttt{nPLD}
 and \texttt{EVEREST 1.0}. \texttt{nPLD} outperforms regular PLD by ${\sim}10-20\%$
@@ -884,10 +898,7 @@ on average, with the largest improvement occurring for fainter stars. Faint star
 noisiest PLD vectors and benefit the most from the inclusion of higher SNR regressors.
 As we showed in Paper I, regular PLD already comes close to recovering \emph{Kepler} photometric
 precision for bright ($\Kp \lesssim 13$) stars, so the improvement for these stars is naturally
-smaller.
-
-\subsection{Comparison to Other Pipelines}
-\label{sec:comparison}
+smaller.\\[0em]
 
 \begin{figure}[hbt]
   \begin{center}
@@ -902,11 +913,14 @@ smaller.
   \end{center}
 \end{figure}
 
+\subsection{Comparison to Other Pipelines}
+\label{sec:comparison}
 In this section we compare the \texttt{EVEREST 2.0} catalog to those produced by other pipelines, beginning with the
 previous version of \texttt{EVEREST}.
 
 Figure~\ref{fig:cdpp_everest1_all} shows the CDPP comparison between \texttt{EVEREST 2.0} and
-\texttt{EVEREST 1.0} for all campaigns 0--8 stars. As in the example shown in Figure~\ref{fig:nPLD},
+\texttt{EVEREST 1.0} for all stars in campaigns 0--8 \edited{(more recent campaigns are not available in the
+\texttt{EVEREST 1.0} catalog)}. As in the example shown in Figure~\ref{fig:nPLD},
 \texttt{EVEREST 2.0} outperforms \texttt{EVEREST 1.0} by ${\sim}20\%$ for the faintest stars and by
 ${\sim}10\%$ for $\Kp \gtrsim 12$. For $11 \lesssim \Kp \lesssim 12$ the two pipelines yield
 comparable results, though regularized regression gives \texttt{EVEREST 2.0} a slight edge. Below
@@ -923,16 +937,16 @@ the \emph{Kepler} photometric precision for these stars.
 \begin{figure}[hbt]
   \begin{center}
       \includegraphics[width=0.47\textwidth]{figures/cdpp_k2sff_all.pdf}
-       \caption{Similar to Figure~\ref{fig:cdpp_everest1_all}, but showing a comparison between \texttt{EVEREST 2.0} and \texttt{K2SFF}.
-       \texttt{EVEREST 2.0} outperforms \texttt{K2SFF} at all magnitudes, including $\Kp \lesssim 11$, for which stars are saturated.
-       \edited{Amend caption!}}
+       \caption{Similar to Figure~\ref{fig:cdpp_everest1_all}, but showing a comparison between \texttt{EVEREST 2.0} and \texttt{K2SFF} \edited{for
+       campaigns 0--8 and 10--13}.
+       \texttt{EVEREST 2.0} outperforms \texttt{K2SFF} at \edited{nearly} all magnitudes, including $\Kp \lesssim 11$, for which stars are saturated.}
      \label{fig:cdpp_k2sff_all}
   \end{center}
 \end{figure}
 
 In Figure~\ref{fig:cdpp_k2sff_all} we show the CDPP comparison between \texttt{EVEREST 2.0}
-and \texttt{K2SFF} \citep{Vanderburg14,VanderburgJohnson14}. Our pipeline yields
-lower average CDPP at all magnitudes, by 40\% for faint stars and 10--20\% for bright
+and \texttt{K2SFF} \citep{Vanderburg14,VanderburgJohnson14} \edited{for campaigns 0--8 and 10--13}. Our pipeline yields
+lower average CDPP at \edited{nearly} all magnitudes, by 40\% for faint stars and 10--20\% for bright
 stars. For saturated stars, \texttt{EVEREST 2.0} outperforms \texttt{K2SFF} by 5--10\%.
 
 \begin{figure}[hbt]
@@ -946,7 +960,7 @@ stars. For saturated stars, \texttt{EVEREST 2.0} outperforms \texttt{K2SFF} by 5
 \end{figure}
 
 In Figure~\ref{fig:cdpp_k2sc_all} we show the comparison to the \texttt{K2SC} PDC
-light curves \citep{Aigrain15,Aigrain16}. \texttt{EVEREST 2.0} yields lower average CDPP at all
+light curves \citep{Aigrain15,Aigrain16} \edited{for campaigns 3--6}. \texttt{EVEREST 2.0} yields lower average CDPP at all
 magnitudes $K_p \gtrsim 9$, with a 20--25\% improvement for
 all unsaturated stars. For $K_p \approx 9$, \texttt{K2SC} slightly overperforms
 \texttt{EVEREST 2.0}, but the scatter in the plot is quite large.
@@ -964,7 +978,8 @@ all unsaturated stars. For $K_p \approx 9$, \texttt{K2SC} slightly overperforms
   \begin{center}
       \includegraphics[width=0.47\textwidth]{figures/cdpp_k2sff.pdf}
        \caption{\edited{Similar to Figure~\ref{fig:cdpp_k2sff_all}, but showing a CDPP comparison between
-       \texttt{EVEREST 2.0} and \texttt{K2SFF} for $K2$ campaigns through 13 (excluding campaigns 9 and 102).}}
+       \texttt{EVEREST 2.0} and \texttt{K2SFF} for $K2$ campaigns 0--8 and 10--13 (excluding the first sub-campaign
+       of 10).}}
      \label{fig:cdpp_k2sff}
   \end{center}
 \end{figure}
@@ -973,7 +988,8 @@ all unsaturated stars. For $K_p \approx 9$, \texttt{K2SC} slightly overperforms
   \begin{center}
       \includegraphics[width=0.47\textwidth]{figures/cdpp_k2sc.pdf}
        \caption{Similar to Figure~\ref{fig:cdpp_k2sc_all}, but showing a CDPP comparison between
-       \texttt{EVEREST 2.0} and \texttt{K2SC} for each of the first 9 $K2$ campaigns.}
+       \texttt{EVEREST 2.0} and \texttt{K2SC} for \edited{the four \emph{K2} campaigns for which
+       \texttt{K2SC} light curves were available at the time of writing.}}
      \label{fig:cdpp_k2sc}
   \end{center}
 \end{figure}
@@ -1056,7 +1072,7 @@ hours on average.
 \end{figure}
 
 In Figure~\ref{fig:short_cad_stats} we plot the relative CDPP distribution of
-671 light curves that were observed in both short and long cadence. In order to
+671 light curves that were observed in both short and long cadence \edited{in campaigns 0--8}. In order to
 compute the 6 hr CDPP of short cadence light curves, we first mask outliers and then
 down-bin to long cadence by taking the mean of every 30 cadences; we then compute
 the CDPP as usual. We achieve higher average precision in the short cadence light
@@ -1134,7 +1150,7 @@ fit of this CBV from each light curve and repeat the procedure to obtain additio
 for each segment of each campaign. In order to prevent the CBVs from fitting out or
 introducing high frequency signals in the light curves, we aggressively smooth them
 with a third order, 1000-cadence Savitsky-Golay filter. The results are shown in
-Figure~\ref{fig:cbv}. The first CBV for each segment of each campaign is plotted in blue,
+Figure~\ref{fig:cbv} \edited{for the first 9 campaigns}. The first CBV for each segment of each campaign is plotted in blue,
 and the second in red. As expected, the first CBV in each segment is dominated by a linear trend with S-like
 hooks on either end. The second CBVs are predominantly quadratic or cubic. The remaining
 CBVs (not shown) are dominated by higher order trends.
@@ -1150,9 +1166,6 @@ so that targets may be further corrected by the user on a case-by-case basis (se
 %We also attempted to regress using the GP of each target, but there is
 %typically enough power in the GP model to strongly disfavor a CBV fit. In practice,
 %our scheme works surprisingly well.
-
-\subsection{Sample Light Curves}
-\label{sec:sample}
 
 \begin{figure}[hbt]
   \begin{center}
@@ -1174,6 +1187,9 @@ so that targets may be further corrected by the user on a case-by-case basis (se
      \label{fig:201862715}
   \end{center}
 \end{figure}
+
+\subsection{Sample Light Curves}
+\label{sec:sample}
 
 \begin{figure}[hbt]
   \begin{center}
@@ -1226,10 +1242,12 @@ GP and the PLD, a computationally costly step that we defer to a future version 
        1, 5, and 6, \texttt{EVEREST} recovers the raw \emph{Kepler} photometric precision down to
        at least $\Kp = 15$; for campaigns 3, 4, and 8, \texttt{EVEREST} recovers the \emph{Kepler}
        precision down to $\Kp = 14$. Campaigns 0 and 2 have a larger fraction of (variable) giant
-       stars, leading to a higher average CDPP, \edited{while campaign 7 raw light curves
+       stars, leading to a higher average CDPP, while campaign 7 raw light curves
        have significantly worse precision due to increased
        spacecraft motion caused by torque imbalances on the spacecraft during this campaign.
-       } \edited{TODO: MORE CAMPAIGNS!}}
+       \edited{Campaign 11 light curves display a similar excess in residual noise, in particular during the first
+       sub-campaign. Like campaign 7, this campaign observed targets near the galactic bulge, where
+       crowding also contributed to poorer performance than average.}}
      \label{fig:cdpp_kepler}
   \end{center}
 \end{figure*}
@@ -1238,7 +1256,7 @@ GP and the PLD, a computationally costly step that we defer to a future version 
   \begin{center}
       \includegraphics[width=0.47\textwidth]{figures/cdpp_kepler_all.pdf}
        \caption{The same as Figure~\ref{fig:cdpp_kepler}, but comparing the CDPP of \emph{all} $K2$ stars
-                \edited{through campaign 8} to that of \emph{Kepler}. \texttt{EVEREST 2.0} recovers the original \emph{Kepler}
+                to that of \emph{Kepler}. \texttt{EVEREST 2.0} recovers the original \emph{Kepler}
                 photometric precision down to at least $\Kp = 14$, and past $\Kp = 15$ for some
                 campaigns.}
      \label{fig:cdpp_kepler_all}
@@ -1247,11 +1265,11 @@ GP and the PLD, a computationally costly step that we defer to a future version 
 
 In Figures~\ref{fig:cdpp_kepler} and \ref{fig:cdpp_kepler_all} we compare the \texttt{EVEREST 2.0}
 photometric precision to that of the original \emph{Kepler} mission. Figure~\ref{fig:cdpp_kepler}
-shows the CDPP as a function of $\Kp$ for each of the first 9 $K2$ campaigns and
+shows the CDPP as a function of $\Kp$ for each \edited{campaign in the \texttt{EVEREST 2.0} catalog} and
 Figure~\ref{fig:cdpp_kepler_all} shows the comparison for all $K2$ stars. Because of differences
 in the raw photometric precision and in the stellar populations across the campaigns, the
-results are variable, but for all campaigns except 0, 2 and 7, we recover the original \emph{Kepler}
-precision down to at least $\Kp = 14$. For campaigns 1, 5, and 6, we recover the \emph{Kepler}
+results are variable, but for all campaigns except \edited{0, 2, 7, 11 and 12} we recover the original \emph{Kepler}
+precision down to at least $\Kp = 14$. For campaigns \edited{1, 5, 6, and 13} we recover the \emph{Kepler}
 precision down to at least $\Kp = 15$. This also applies to saturated stars, though in some
 campaigns the \texttt{EVEREST 2.0} CDPP is slightly higher for these stars. For stars
 dimmer than $\Kp = 15$, the \texttt{EVEREST 2.0} CDPP is within a few tens of percent ---
@@ -1310,12 +1328,19 @@ optimization of the GP (\S\ref{sec:impl_gp}) helps to maximize the amount of ast
 information captured by the GP model, but a better procedure would be to simultaneously
 fit for the GP hyperparameters and the PLD coefficients. This would ensure that the PLD
 model captures only instrumental signals and the GP model captures only astrophysical
-signals. However, such a method is computationally intractable, since the problem would
+signals. However, such a method is \edited{too computationally expensive}, since the problem would
 no longer be linear. We therefore settle for our linear method, which works extremely
 well for stars that do not exhibit \edited{high-amplitude, short-timescale} variability and has a ${\sim}50\%$ success
 rate for those that do. We encourage readers interested in RR Lyrae and other
-\edited{highly variable} stars to inspect the light curves of the different pipelines on a target-by-target
-basis.
+\edited{highly variable} stars to inspect the light curves of the different
+pipelines on a target-by-target basis. \edited{In particular, users should compare
+the amplitude of the signal in the raw light curve to that in the de-trended light curve(s).
+The variability amplitude of RR Lyrae is typically on the order of 0.5--1 magnitudes, so for
+stars with $Kp \lesssim 15$ the astrophysical signal should dominate over instrumental
+variability, making it relatively easy to tell by eye if a target has suffered from
+overfitting. To help with identifying affected light curves, and to provide tips on how
+to improve the performance of \texttt{EVEREST}, we produced a quick tutorial, which is available at
+\url{https://rodluger.github.io/everest/issues.html\#rr-lyrae}.}
 
 \subsection{Crowded Apertures}
 \label{sec:crowded}
@@ -1376,7 +1401,13 @@ As in Paper I, we urge caution when using the \texttt{EVEREST} light curves of c
 but note that in most of the cases known to us in which the previous version overfitted transits
 and eclipses, \texttt{EVEREST 2.0} succeeds in removing the instrumental noise without overfitting
 astrophysical information. Future updates to the pipeline will include a more careful aperture
-selection, which can mitigate the effects of crowding for targets like EPIC 211685048.
+selection, which can mitigate the effects of crowding for targets like EPIC 211685048. \edited{Note,
+importantly, that crowding is an issue specifically for PLD, which exploits correlations among
+different pixels on the detector to extract instrumental signals and therefore requires a spatially
+homogeneous astrophysical signal. Other pipelines, such as \texttt{K2SFF} and \texttt{K2SC}, are not
+affected in the same way by a crowded field; in fact, the \texttt{K2SFF} and \texttt{K2SC} light curves for EPIC 211685048
+show no signs of overfitting. We recommend the light curves from these pipelines when
+bright contaminant stars are present in the aperture.}
 
 \subsection{Aperture Losses}
 \label{sec:losses}
@@ -1398,6 +1429,53 @@ the postage stamps of extremely bright stars to ensure that aperture losses are 
 present.
 %
 %EPIC 220651426: different de-trending power in each segment.
+
+\begin{edits}
+\subsection{Overfitting Metrics}
+\label{sec:overfit_metrics}
+In the previous section, we focused on the CDPP of the de-trended light curves as a means
+of comparing \texttt{EVEREST} to other publicly available pipelines. However, as we argued
+above, a pipeline's robustness against overfitting is a similarly important metric to
+consider. In \S\ref{sec:inj} we computed the tendency of \texttt{EVEREST} to overfit
+based on transit injection/recovery tests by measuring the recovered transit depth divided by
+the injected transit depth, $D/D_0$. We did this twice, once for light curves in which
+the transits were not masked, and once for light curves in which the transits were masked
+(hence preventing the PLD model from being trained on data collected during transits). We
+showed that while \texttt{EVEREST} tends to overfit shallow transits by about 10\% on average
+when they are not masked, the overfitting is negligible when they are properly masked.
+
+The results in Figure~\ref{fig:injections} show considerable spread in $D/D_0$, meaning individual
+\emph{K2} light curves suffer from different amounts of overfitting. Moreover, we find that the
+overfitting is also variable within light curves, and tends to be significantly higher
+close to discontinuities due to thruster firings when the transits are not masked. In order
+to quantify this overfitting for individual light curves, we have written code for the user
+to easily compute two different overfitting statistics: the \emph{unmasked overfitting metric}
+$\mathcal{O}_u$ and the \emph{masked overfitting metric} $\mathcal{O}_m$, both defined as
+%
+\begin{equation}
+    \mathcal{O} \equiv 1 - \left<\frac{D}{D_0}\right>,
+\end{equation}
+%
+the average fractional decrease in depth for injected transits when
+the transits are unmasked ($\mathcal{O}_u$) and masked ($\mathcal{O}_m$).
+For any particular star, we compute
+these by sliding an injected transit across every cadence in the raw light curve and
+computing its maximum likelihood depth after de-trending. Because \texttt{EVEREST} is a
+linear model, both of these metrics are relatively fast to evaluate. Users can compute
+them by executing
+%
+\begin{lstlisting}[language=bash]
+everest XXXXXXXXX -o
+\end{lstlisting}
+%
+in a Unix shell, where \texttt{XXXXXXXXX} is the 9-digit EPIC ID of the target. For more
+information, refer to the online documentation.
+
+As expected from the results in \S\ref{sec:inj}, the average values of $\mathcal{O}_u$
+and $\mathcal{O}_m$ across all light curves are about 0.10 and 0.00, respectively. We
+encourage the community to adopt similar metrics for other \emph{K2} pipelines (and for upcoming \emph{TESS}
+pipelines) to facilitate comparison across catalogs.
+\end{edits}
 
 \section{Using EVEREST}
 \label{sec:using}
@@ -1465,7 +1543,8 @@ as well as cross-validation diagnostic plots such as those in Figure~\ref{fig:cr
 and a high resolution POSS image of the target aperture like those shown in
 Figure~\ref{fig:crowding}.
 
-\edited{\subsection{Python Code}}
+\begin{edits}
+\subsection{Python Code}
 \label{sec:python}
 The \texttt{EVEREST} code can be installed using the package managing system \texttt{pip}:
 %
@@ -1507,7 +1586,7 @@ the latter of which displays the DVS report for the target.
 The code implements various other visualization routines, which are described in
 detail in the documentation at \url{https://rodluger.github.io/everest}.
 
-\edited{\subsubsection{Dealing with transits}}
+\subsubsection{Dealing with transits}
 \label{sec:dealing_with_transits}
 As we discussed in \S\ref{sec:inj}, high frequency astrophysical signals such
 as transits can impact the performance of PLD and lead to slight overfitting.
@@ -1638,10 +1717,10 @@ normal and can be obtained from some quick linear algebra. Its value for any
 instance of the model can be obtained by setting the \texttt{full$\_$output}
 flag in calls to \texttt{lnlike} (see above).\\[0em]
 
-\edited{\subsubsection{Customized de-trending}}
+\subsubsection{Customized de-trending}
 \label{sec:custom_detrending}
 The final point regarding version 2 of the software is the option to perform
-de-trending on custom K2 FITS files. This is particularly useful for de-trending
+de-trending on custom \emph{K2} FITS files. This is particularly useful for de-trending
 uncalibrated FITS files, which are typically released by the \emph{Kepler}
 team ahead of the pipeline-processed target pixel files:
 %
@@ -1649,7 +1728,9 @@ team ahead of the pipeline-processed target pixel files:
 everest.DetrendFITS(fitsfile)
 \end{lstlisting}
 %
+where \texttt{fitsfile} is the path to the raw FITS file for the target.
 Refer to the documentation for more information.\\[0em]
+\end{edits}
 
 \section{Conclusions}
 \label{sec:conclusions}
@@ -1681,7 +1762,14 @@ improvement is ${\sim}20\%$ compared to both pipelines. For saturated stars,
 \texttt{EVEREST} outperforms both pipelines, but by a smaller margin. We also
 find that \texttt{EVEREST} light curves have, on average, 100--300 fewer outliers
 than those of other pipelines, owing primarily to the ability of PLD to correct
-data collected during thruster firing events.
+data collected during thruster firing events. \edited{Note, importantly, that there
+exists a trade-off between a pipeline's de-trending power and its proneness
+to overfitting. We find that the higher photometric precision in \texttt{EVEREST}
+light curves comes at the cost of more overfitting than in \texttt{K2SFF} and
+\texttt{K2SC}. However, we find that our algorithm is robust to overfitting
+if transits and other astrophysical signals of interest
+are properly masked or modeled, which can be done easily using our
+Python code (see \S\ref{sec:dealing_with_transits} and below).}
 
 When compared to the original \emph{Kepler} mission, \texttt{EVEREST 2.0}
 recovers \emph{Kepler} photometry on average to $\Kp \approx 14.5$, and past
@@ -1703,8 +1791,8 @@ of targets of interest, particularly for masking transits to remove biases in
 the depth due to overfitting. We have implemented each of the PLD models discussed
 above (\texttt{rPLD}, \texttt{nPLD}, \texttt{pPLD}) in a general framework that
 can be adapted to different missions, including \emph{Kepler} and the upcoming
-\emph{TESS}. For more information, refer to the documentation linked
-on the \texttt{github} page.
+\emph{TESS}. For more information, refer to the documentation \edited{at
+\url{https://rodluger.github.io/everest}.}
 
 \acknowledgments{
 We would like to thank Benjamin Pope and Tsevi Mazeh
