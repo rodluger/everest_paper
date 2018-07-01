@@ -1,4 +1,4 @@
-\documentclass[]{emulateapj}
+\documentclass[]{aastex62}
 \PassOptionsToPackage{hyphens}{url}\usepackage{hyperref}
 \usepackage{natbib}
 \usepackage{amssymb}
@@ -61,16 +61,30 @@
 \newenvironment{edits}{\color{red}}{\color{black}}
 
 \shorttitle{EVEREST 2.0}
-\shortauthors{Luger et al. 2017}
+\shortauthors{Luger et al. 2018}
 
 \begin{document}
 
-\title{An update to the EVEREST K2 pipeline:\\ Short cadence, saturated stars, and Kepler-like\\ photometry down to $\Kp = 15$}
-\author{Rodrigo Luger\altaffilmark{1,2}, Ethan Kruse\altaffilmark{1}, Daniel Foreman-Mackey\altaffilmark{3},\\
-Eric Agol\altaffilmark{1,2}, Nicholas Saunders\altaffilmark{1}}
-\altaffiltext{1}{Astronomy Department, University of Washington, Box 351580, Seattle, WA 98195, USA; \href{mailto:rodluger@uw.edu}{rodluger@uw.edu}}
-\altaffiltext{2}{Virtual Planetary Laboratory, Seattle, WA 98195, USA}
-\altaffiltext{3}{Center for Computational Astronomy, Flatiron Institute, New York, NY 10010, USA}
+\title{An update to the EVEREST K2 pipeline:\\ Short cadence, saturated stars, and Kepler-like photometry down to $\Kp = 15$}
+
+\author[0000-0002-0296-3826]{Rodrigo Luger}
+\email{rodluger@uw.edu}
+\affil{Department~of~Astronomy, University~of~Washington, Seattle, WA}
+\affil{Virtual~Planetary~Laboratory, University~of~Washington, Seattle, WA}
+%
+\author{Ethan Kruse}
+\affil{Department~of~Astronomy, University~of~Washington, Seattle, WA}
+%
+\author{Daniel Foreman-Mackey}
+\affil{Center~for~Computational~Astrophysics, Flatiron~Institute, New~York, NY}
+%
+\author{Eric Agol}
+\altaffiliation{Guggenheim~Fellow}
+\affil{Department~of~Astronomy, University~of~Washington, Seattle, WA}
+\affil{Virtual~Planetary~Laboratory, University~of~Washington, Seattle, WA}
+%
+\author{Nicholas Saunders}
+\affil{Department~of~Astronomy, University~of~Washington, Seattle, WA}
 
 \begin{abstract}
 We present an update to the \texttt{EVEREST} $K2$ pipeline that addresses various limitations
@@ -658,7 +672,7 @@ curves \emph{before} the cross-validation step. Since only deep transits are lik
 bias the cross-validation, and since the number of short cadence light curves in each
 campaign is relatively small, these can easily be identified by inspection.
 
-\pagebreak
+%\pagebreak
 
 \subsection{Cross-validation}
 \label{sec:impl_crossval}
@@ -1480,7 +1494,7 @@ pipelines) to facilitate comparison across catalogs.
 \section{Using EVEREST}
 \label{sec:using}
 All \texttt{EVEREST 2.0} $K2$ light curves are available for download as \texttt{FITS} files
-from MAST.\footnote{\url{https://archive.stsci.edu/prepds/everest}} As with the
+from \dataset[MAST]{https://archive.stsci.edu/prepds/everest}. As with the
 previous version, we urge users to interface with the catalog via the Python code,
 which can be installed following the instructions at
 \url{https://github.com/rodluger/everest}. \edited{A detailed description of the data products
@@ -1784,7 +1798,7 @@ at \url{https://archive.stsci.edu/prepds/everest}.
 As with the previous version of the code, \texttt{EVEREST 2.0} is open source under
 the MIT license and available at \url{https://github.com/rodluger/everest},
 \edited{with a static release of the code used to generate the catalog archived at
-\url{http://dx.doi.org/10.5281/zenodo.1095138}.}
+\url{https://doi.org/10.5281/zenodo.1302521}.}
 The reader is encouraged to use this code
 to interface with the \texttt{EVEREST} catalog and to customize the de-trending
 of targets of interest, particularly for masking transits to remove biases in
@@ -1812,6 +1826,6 @@ storage, and networking infrastructure provided by the Hyak
 supercomputer system at the University of Washington.
 }
 
-\bibliographystyle{apj}
+\bibliographystyle{aasjournal}
 \bibliography{everest}
 \end{document}
